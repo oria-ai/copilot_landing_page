@@ -1,0 +1,79 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Star } from 'lucide-react';
+
+const stats = [
+    { label: 'Satisfaction', value: '4.9/5', sub: 'from HR Managers' },
+    { label: 'Learners', value: '10k+', sub: 'Upskilled' },
+    { label: 'Modules', value: '500+', sub: 'Available' },
+];
+
+const testimonials = [
+    {
+        user: 'TechCorp_Learning',
+        text: "The adaptive level system saved us hours of training time. Employees get exactly what they need.",
+    },
+    {
+        user: 'FinanceTeamLead',
+        text: "My team mastered Excel Copilot in days. The hands-on labs are a game changer.",
+    },
+    {
+        user: 'HR_Director_Sarah',
+        text: "The manager dashboard gives me the exact visibility I need on company-wide adoption.",
+    }
+];
+
+export default function SocialProof() {
+    return (
+        <section className="py-24 bg-black relative overflow-hidden">
+            {/* Background Glow */}
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-900/20 blur-[120px] rounded-full pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto px-4">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 border-y border-white/10 py-12">
+                    {stats.map((stat, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.1 }}
+                            className="text-center"
+                        >
+                            <h3 className="text-6xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500 mb-2">
+                                {stat.value}
+                            </h3>
+                            <p className="text-gray-400 font-medium uppercase tracking-widest text-sm">{stat.label}</p>
+                            <p className="text-gray-600 text-xs mt-1">{stat.sub}</p>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Testimonials */}
+                <div className="text-center max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-12">Trusted by Creators</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {testimonials.map((t, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2 + (i * 0.1) }}
+                                className="p-6 rounded-2xl bg-white/5 border border-white/10 text-left"
+                            >
+                                <div className="flex gap-1 text-yellow-500 mb-4">
+                                    {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
+                                </div>
+                                <p className="text-gray-300 mb-4 text-sm leading-relaxed">"{t.text}"</p>
+                                <p className="text-white font-semibold text-sm">@{t.user}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
