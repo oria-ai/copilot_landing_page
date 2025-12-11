@@ -118,8 +118,8 @@ export default function LoginPage() {
             {/* Desktop: Left Half Image Side */}
             <div className="hidden lg:block w-1/2 relative overflow-hidden bg-black">
                 {/* Logo Top Left */}
-                <div className="absolute top-8 left-8 z-30 flex items-center gap-3">
-                    <img src="/logo_text.png" alt="Copilot Inside Logo" className="h-24 w-auto object-contain" />
+                <div className="absolute top-6 left-6 z-30 flex items-center gap-3">
+                    <img src="/logo_text.png" alt="Copilot Inside Logo" className="h-20 w-auto object-contain" />
                 </div>
 
 
