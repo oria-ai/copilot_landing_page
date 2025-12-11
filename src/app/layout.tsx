@@ -30,6 +30,19 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-KJW3H27633"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-KJW3H27633');
+          `}
+        </Script>
+        <Script
           src="https://cdn.userway.org/widget.js"
           data-account="u9qKBcpIlF"
           strategy="afterInteractive"
