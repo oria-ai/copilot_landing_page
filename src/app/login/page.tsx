@@ -3,6 +3,7 @@
 import { Apple, Chrome, Mail, Monitor, ArrowRight, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -12,12 +13,13 @@ export default function LoginPage() {
     const [isEmailMode, setIsEmailMode] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const BASE_URL = getBaseUrl();
 
     const handleGoogleLogin = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${BASE_URL}/auth/callback`,
             },
         });
         if (error) console.error('Error logging in:', error.message);
@@ -27,7 +29,7 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'azure',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${BASE_URL}/auth/callback`,
                 scopes: 'email',
             },
         });
@@ -38,7 +40,7 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'apple',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${BASE_URL}/auth/callback`,
             },
         });
         if (error) console.error('Error logging in:', error.message);
@@ -68,7 +70,7 @@ export default function LoginPage() {
         if (error) {
             alert('Error verifying code: ' + error.message);
         } else {
-            window.location.href = '/dashboard';
+            window.location.href = '/trial';
         }
     };
     return (
