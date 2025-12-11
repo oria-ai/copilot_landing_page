@@ -119,30 +119,10 @@ export default function LoginPage() {
             <div className="hidden lg:block w-1/2 relative overflow-hidden bg-black">
                 {/* Logo Top Left */}
                 <div className="absolute top-8 left-8 z-30 flex items-center gap-3">
-                    <img src="/Gemini_Generated_Image_m14tzom14tzom14t__1_-removebg-preview.png" alt="Copilot Inside Logo" className="w-24 h-24 object-contain" />
-                    <div className="flex flex-col">
-                        <span className="font-bold text-2xl tracking-tighter text-white leading-none">
-                            Copilot<span className="text-accent-primary">Inside</span>
-                        </span>
-                        <span className="text-xs font-medium text-gray-300 leading-none opacity-80 mt-1">
-                            by HandsOnAI
-                        </span>
-                    </div>
+                    <img src="/logo_text.png" alt="Copilot Inside Logo" className="h-24 w-auto object-contain" />
                 </div>
 
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-indigo-900/50 to-transparent pointer-events-none mix-blend-overlay" />
-                <img
-                    src="/artifacts/adaptive_learning_flow_1765320088222.png"
-                    alt="Login Visual"
-                    className="w-full h-full object-cover opacity-90"
-                />
 
-                {/* Center Overlay Text */}
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <h2 className="text-6xl font-bold text-white tracking-tight drop-shadow-2xl">
-                        7-day free trial
-                    </h2>
-                </div>
             </div>
 
             {/* Right Half: Light Mode Form */}
@@ -184,7 +164,7 @@ export default function LoginPage() {
                         {!isEmailMode ? (
                             <button
                                 onClick={() => setIsEmailMode(true)}
-                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm"
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
                             >
                                 <Mail className="w-6 h-6 text-gray-900" />
                                 <span>Log in with email</span>
@@ -207,11 +187,11 @@ export default function LoginPage() {
                                         <button
                                             onClick={handleSendOtp}
                                             disabled={isLoading}
-                                            className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold py-4 px-6 rounded-full hover:bg-gray-800 transition-colors text-lg shadow-sm disabled:opacity-50"
+                                            className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold py-4 px-6 rounded-full hover:bg-gray-800 transition-colors text-lg shadow-sm disabled:opacity-50 cursor-pointer"
                                         >
                                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Login Code'}
                                         </button>
-                                        <button onClick={() => setIsEmailMode(false)} className="w-full text-sm text-gray-500 hover:text-gray-900">
+                                        <button onClick={() => setIsEmailMode(false)} className="w-full text-sm text-gray-500 hover:text-gray-900 cursor-pointer">
                                             Back to options
                                         </button>
                                     </div>
@@ -232,12 +212,12 @@ export default function LoginPage() {
                                         <button
                                             onClick={handleVerifyOtp}
                                             disabled={isLoading}
-                                            className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold py-4 px-6 rounded-full hover:bg-gray-800 transition-colors text-lg shadow-sm disabled:opacity-50"
+                                            className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold py-4 px-6 rounded-full hover:bg-gray-800 transition-colors text-lg shadow-sm disabled:opacity-50 cursor-pointer"
                                         >
                                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify & Login'}
                                             {!isLoading && <ArrowRight className="w-5 h-5" />}
                                         </button>
-                                        <button onClick={() => setIsVerifying(false)} className="w-full text-sm text-gray-500 hover:text-gray-900">
+                                        <button onClick={() => setIsVerifying(false)} className="w-full text-sm text-gray-500 hover:text-gray-900 cursor-pointer">
                                             Wrong email?
                                         </button>
                                     </div>
@@ -251,7 +231,7 @@ export default function LoginPage() {
                             {showMoreOptions && (
                                 <button
                                     onClick={handleFacebookLogin}
-                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2"
+                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
                                 >
                                     <FaFacebook className="w-6 h-6 text-[#1877F2]" />
                                     <span>Log in with Facebook</span>
@@ -260,7 +240,7 @@ export default function LoginPage() {
 
                             <button
                                 onClick={() => setShowMoreOptions(!showMoreOptions)}
-                                className="w-full text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 mx-auto font-medium"
+                                className="w-full text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 mx-auto font-medium cursor-pointer"
                             >
                                 {showMoreOptions ? (
                                     <>Show less <span className="text-[10px] rotate-180 transition-transform">▼</span></>
@@ -275,12 +255,12 @@ export default function LoginPage() {
                 {/* Footer Links (From Trial Page) */}
                 <div className="lg:absolute bottom-8 w-full text-center px-4 mt-auto lg:mt-0 pt-8 lg:pt-0">
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
-                        <Link href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
+                        <Link href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors cursor-pointer">Privacy Policy</Link>
                         <span className="hidden sm:inline text-gray-300">|</span>
-                        <Link href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Terms of Use</Link>
+                        <Link href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors cursor-pointer">Terms of Use</Link>
                         <span className="hidden sm:inline text-gray-300">|</span>
                         <button
-                            className="hover:text-gray-900 transition-colors"
+                            className="hover:text-gray-900 transition-colors cursor-pointer"
                             onClick={() => window.UserWay?.widgetOpen?.()}
                         >
                             Accessibility
@@ -299,7 +279,7 @@ export default function LoginPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative animate-in zoom-in-95 duration-200">
                         <button
                             onClick={() => setShowAppleError(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-900"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 cursor-pointer"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -317,21 +297,21 @@ export default function LoginPage() {
                         <div className="space-y-3">
                             <button
                                 onClick={() => { setShowAppleError(false); handleGoogleLogin(); }}
-                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                             >
                                 <FcGoogle className="w-5 h-5" />
                                 Continue with Google
                             </button>
                             <button
                                 onClick={() => { setShowAppleError(false); setIsEmailMode(true); }}
-                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                             >
                                 <Mail className="w-5 h-5" />
                                 Continue with Email
                             </button>
                             <button
                                 onClick={() => { setShowAppleError(false); handleFacebookLogin(); }}
-                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                             >
                                 <FaFacebook className="w-5 h-5 text-[#1877F2]" />
                                 Continue with Facebook
