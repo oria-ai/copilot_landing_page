@@ -119,7 +119,9 @@ export default function LoginPage() {
             <div className="hidden lg:block w-1/2 relative overflow-hidden bg-black">
                 {/* Logo Top Left */}
                 <div className="absolute top-8 left-8 z-30 flex items-center">
-                    <img src="/pinki.png" alt="Copilot Inside Logo" className="w-40 object-contain" />
+                    <div className="font-bold text-3xl tracking-tighter text-white">
+                        Copilot<span className="text-accent-primary">Inside</span>
+                    </div>
                 </div>
 
                 <div className="absolute inset-0 z-10 bg-gradient-to-t from-indigo-900/50 to-transparent pointer-events-none mix-blend-overlay" />
@@ -131,14 +133,15 @@ export default function LoginPage() {
 
                 {/* Center Overlay Text */}
                 <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <h2 className="text-6xl font-bold text-white tracking-tight drop-shadow-2xl">
+                    {/* CONTROL POSITION HERE: Change 'translate-y-20' to move text up/down (e.g., translate-y-0 for center, translate-y-32 for lower) */}
+                    <h2 className="text-3xl font-bold text-white tracking-tight drop-shadow-2xl translate-y-10">
                         7-day free trial
                     </h2>
                 </div>
             </div>
 
             {/* Right Half: Light Mode Form */}
-            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 md:p-12 relative bg-white">
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center lg:justify-start lg:pt-22 p-6 md:p-12 relative bg-white">
 
                 <div className="w-full max-w-md space-y-8 mt-10 lg:mt-0">
                     <div className="text-center">
@@ -279,7 +282,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                     <div className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-2">
-                        <span>Copilot Inside</span>
+                        <span>HandsOnAI</span>
                         <span>© 2025 All rights reserved</span>
                     </div>
                 </div>
