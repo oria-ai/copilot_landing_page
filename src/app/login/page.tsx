@@ -34,6 +34,16 @@ export default function LoginPage() {
         if (error) console.error('Error logging in:', error.message);
     };
 
+    const handleAppleLogin = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'apple',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        if (error) console.error('Error logging in:', error.message);
+    };
+
     const handleSendOtp = async () => {
         if (!email) return;
         setIsLoading(true);
@@ -121,6 +131,13 @@ export default function LoginPage() {
                                 >
                                     <Monitor className="w-5 h-5" />
                                     Log in with Microsoft
+                                </button>
+                                <button
+                                    onClick={handleAppleLogin}
+                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
+                                >
+                                    <Apple className="w-5 h-5" />
+                                    Log in with Apple
                                 </button>
                                 <button
                                     onClick={() => setIsEmailMode(true)}
