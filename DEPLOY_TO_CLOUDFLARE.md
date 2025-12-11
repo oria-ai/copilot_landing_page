@@ -41,6 +41,7 @@ Add the following (copy values from your local `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (If you are using it server-side)
+- `NPM_FLAGS` = `--legacy-peer-deps` (CRITICAL: Fixes Next.js 16 build error)
 
 > **Note**: Do NOT add `NEXT_PUBLIC_SITE_URL` yet if you don't know your final Cloudflare domain, or set it to the provided `*.pages.dev` domain after the first deployment.
 
