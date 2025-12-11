@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -28,6 +29,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Script src="/acctoolbar.min.js" strategy="afterInteractive" />
+        <Script id="mic-access-tool-init" strategy="afterInteractive">
+          {`
+            window.addEventListener('load', function () {
+              if (window.MicAccessTool) {
+                new window.MicAccessTool({ forceLang: 'he-IL', buttonPosition: 'right' });
+              }
+            });
+          `}
+        </Script>
       </body>
     </html>
   );
