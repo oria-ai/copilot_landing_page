@@ -5,18 +5,30 @@ import Link from "next/link";
 import { Lock, Bell, CheckCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+declare global {
+    interface Window {
+        UserWay?: {
+            widgetOpen: () => void;
+            widgetClose: () => void;
+            widgetToggle: () => void;
+            resetAll: () => void;
+            iconVisibilityOn: () => void;
+            iconVisibilityOff: () => void;
+        };
+    }
+}
+
 export default function TrialPage() {
     const step1Ref = useRef<HTMLDivElement>(null);
     const step2Ref = useRef<HTMLDivElement>(null);
     const [filledLineHeight, setFilledLineHeight] = useState(0);
 
+    // Logic to calculate dynamic line height
     useEffect(() => {
         const calculateHeight = () => {
             if (step1Ref.current && step2Ref.current) {
                 const box1 = step1Ref.current.getBoundingClientRect();
                 const box2 = step2Ref.current.getBoundingClientRect();
-                // Calculate distance between the tops of the two circles
-                // They are aligned, so just difference in Y
                 const distance = box2.top - box1.top;
                 setFilledLineHeight(distance * 0.5); // Fill exactly half the distance
             }
@@ -27,10 +39,32 @@ export default function TrialPage() {
         return () => window.removeEventListener('resize', calculateHeight);
     }, []);
 
+    // Logic to hide the UserWay floating widget
+    useEffect(() => {
+        const hideIcon = () => {
+            if (window.UserWay) {
+                window.UserWay.iconVisibilityOff();
+            }
+        };
+
+        document.addEventListener('userway:init_completed', hideIcon);
+
+        // Attempt to hide immediately
+        hideIcon();
+
+        // Also set an interval to check for a few seconds in case of race conditions
+        const interval = setInterval(hideIcon, 500);
+        setTimeout(() => clearInterval(interval), 5000);
+
+        return () => {
+            document.removeEventListener('userway:init_completed', hideIcon);
+            clearInterval(interval);
+        };
+    }, []);
+
     return (
         <div className="flex h-screen flex-col lg:flex-row bg-white overflow-hidden">
             {/* Left Side - Image */}
-            {/* Increased width to ~51-52% by forcing the other side to be slightly less or using flex-basis */}
             <div className="relative hidden lg:block lg:w-[52%] overflow-hidden bg-gray-50">
                 <Image
                     src="/man_using_copilot.png"
@@ -50,7 +84,7 @@ export default function TrialPage() {
                 <div className="flex flex-col justify-center flex-grow px-6 lg:px-12 py-4">
                     <div className="mx-auto w-full max-w-[420px]">
 
-                        {/* Header - restricted to 1 line via text sizing and responsive tweaks */}
+                        {/* Header */}
                         <h1 className="mb-8 text-center text-3xl font-bold tracking-tight text-gray-900 xl:text-4xl whitespace-nowrap">
                             How your free trial works
                         </h1>
@@ -58,7 +92,6 @@ export default function TrialPage() {
                         <div className="relative space-y-8 xl:space-y-10">
 
                             {/* Continuous Vertical Line (Background) */}
-                            {/* Starts at top-5 (20px), goes down to near bottom */}
                             <div className="absolute left-[18px] top-5 bottom-2 w-1 bg-violet-100/80" />
 
                             {/* Filled Active Line (Dynamic) */}
@@ -114,7 +147,6 @@ export default function TrialPage() {
                         </div>
 
                         <div className="mt-12 flex justify-center">
-                            {/* Wider button */}
                             <button className="w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl">
                                 Continue
                             </button>
@@ -122,7 +154,7 @@ export default function TrialPage() {
                     </div>
                 </div>
 
-                {/* Footer - Pushed to bottom with mt-auto */}
+                {/* Footer */}
                 <div className="mt-auto border-t border-gray-100 py-6">
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
                         <Link href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
@@ -131,8 +163,7 @@ export default function TrialPage() {
                         <span className="hidden sm:inline text-gray-300">|</span>
                         <button
                             className="hover:text-gray-900 transition-colors"
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            onClick={() => (window as any).UserWay?.widgetOpen?.()}
+                            onClick={() => window.UserWay?.widgetOpen?.()}
                         >
                             Accessibility
                         </button>
@@ -140,10 +171,12 @@ export default function TrialPage() {
                 </div>
             </div>
 
+            {/* Fallback CSS to hide widget trigger if JS fails/lags */}
             <style dangerouslySetInnerHTML={{
                 __html: `
         .uway_widget_trigger { display: none !important; }
         iframe[title="Accessibility Menu"] { display: none !important; } 
+        #userway-accessibility-widget { display: none !important; }
       `}} />
         </div>
     );
