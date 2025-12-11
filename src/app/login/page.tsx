@@ -1,10 +1,25 @@
 'use client';
 
-import { Apple, Chrome, Mail, Monitor, ArrowRight, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Mail, ArrowRight, Loader2, X } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
+import { FaApple, FaFacebook } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
+
+declare global {
+    interface Window {
+        UserWay?: {
+            widgetOpen: () => void;
+            widgetClose: () => void;
+            widgetToggle: () => void;
+            resetAll: () => void;
+            iconVisibilityOn: () => void;
+            iconVisibilityOff: () => void;
+        };
+    }
+}
 
 export default function LoginPage() {
     const supabase = createClient();
@@ -13,7 +28,32 @@ export default function LoginPage() {
     const [isEmailMode, setIsEmailMode] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+    // Apple Login Mock State
+    const [isAppleLoading, setIsAppleLoading] = useState(false);
+    const [showAppleError, setShowAppleError] = useState(false);
+
     const BASE_URL = getBaseUrl();
+
+    // Logic to hide the UserWay floating widget (copied from Trial page)
+    useEffect(() => {
+        const hideIcon = () => {
+            if (window.UserWay) {
+                window.UserWay.iconVisibilityOff();
+            }
+        };
+
+        document.addEventListener('userway:init_completed', hideIcon);
+        hideIcon();
+        const interval = setInterval(hideIcon, 500);
+        setTimeout(() => clearInterval(interval), 5000);
+
+        return () => {
+            document.removeEventListener('userway:init_completed', hideIcon);
+            clearInterval(interval);
+        };
+    }, []);
 
     const handleGoogleLogin = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
@@ -25,25 +65,23 @@ export default function LoginPage() {
         if (error) console.error('Error logging in:', error.message);
     };
 
-    const handleMicrosoftLogin = async () => {
+    const handleFacebookLogin = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'azure',
+            provider: 'facebook',
             options: {
                 redirectTo: `${BASE_URL}/auth/callback`,
-                scopes: 'email',
             },
         });
         if (error) console.error('Error logging in:', error.message);
     };
 
     const handleAppleLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'apple',
-            options: {
-                redirectTo: `${BASE_URL}/auth/callback`,
-            },
-        });
-        if (error) console.error('Error logging in:', error.message);
+        setIsAppleLoading(true);
+        // Simulate loading for 1 second
+        setTimeout(() => {
+            setIsAppleLoading(false);
+            setShowAppleError(true);
+        }, 1000);
     };
 
     const handleSendOtp = async () => {
@@ -73,6 +111,7 @@ export default function LoginPage() {
             window.location.href = '/trial';
         }
     };
+
     return (
         <main className="min-h-screen flex flex-col lg:flex-row bg-white text-gray-900 font-sans">
 
@@ -118,37 +157,38 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-4">
+                        {/* Google Button */}
+                        {!isEmailMode && (
+                            <button
+                                onClick={handleGoogleLogin}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
+                            >
+                                <FcGoogle className="w-6 h-6" />
+                                <span>Log in with Google</span>
+                            </button>
+                        )}
+
+                        {/* Apple Button */}
+                        {!isEmailMode && (
+                            <button
+                                onClick={handleAppleLogin}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
+                            >
+                                {isAppleLoading ? <Loader2 className="w-6 h-6 animate-spin text-gray-900" /> : <FaApple className="w-6 h-6" />}
+                                <span>Log in with Apple</span>
+                                <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ml-1 tracking-wide">iOS Only</span>
+                            </button>
+                        )}
+
+                        {/* Email Button Logic */}
                         {!isEmailMode ? (
-                            <>
-                                <button
-                                    onClick={handleGoogleLogin}
-                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
-                                >
-                                    <Chrome className="w-5 h-5" />
-                                    Log in with Google
-                                </button>
-                                <button
-                                    onClick={handleMicrosoftLogin}
-                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm"
-                                >
-                                    <Monitor className="w-5 h-5" />
-                                    Log in with Microsoft
-                                </button>
-                                <button
-                                    onClick={handleAppleLogin}
-                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
-                                >
-                                    <Apple className="w-5 h-5" />
-                                    Log in with Apple
-                                </button>
-                                <button
-                                    onClick={() => setIsEmailMode(true)}
-                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm"
-                                >
-                                    <Mail className="w-5 h-5" />
-                                    Log in with email
-                                </button>
-                            </>
+                            <button
+                                onClick={() => setIsEmailMode(true)}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm"
+                            >
+                                <Mail className="w-6 h-6 text-gray-900" />
+                                <span>Log in with email</span>
+                            </button>
                         ) : (
                             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 {!isVerifying ? (
@@ -204,38 +244,47 @@ export default function LoginPage() {
                                 )}
                             </div>
                         )}
-                    </div>
 
-                    <div className="text-center pt-2">
-                        <button className="text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 mx-auto font-medium">
-                            More login options <span className="text-[10px]">▼</span>
-                        </button>
-                    </div>
+                        {/* Facebook Button */}
+                        {/* More Options / Facebook */}
+                        <div className="pt-2 flex flex-col gap-3">
+                            {showMoreOptions && (
+                                <button
+                                    onClick={handleFacebookLogin}
+                                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2"
+                                >
+                                    <FaFacebook className="w-6 h-6 text-[#1877F2]" />
+                                    <span>Log in with Facebook</span>
+                                </button>
+                            )}
 
-                    <div className="flex items-start gap-3 pt-4">
-                        <input type="checkbox" id="promotions" className="mt-1 rounded border-gray-300" />
-                        <label htmlFor="promotions" className="text-xs text-gray-400">I do not wish to receive promotions and updates from Copilot Inside</label>
+                            <button
+                                onClick={() => setShowMoreOptions(!showMoreOptions)}
+                                className="w-full text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 mx-auto font-medium"
+                            >
+                                {showMoreOptions ? (
+                                    <>Show less <span className="text-[10px] rotate-180 transition-transform">▼</span></>
+                                ) : (
+                                    <>More login options <span className="text-[10px] transition-transform">▼</span></>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer Links (Absolute bottom > lg, Static < lg) */}
-                <div className="lg:absolute bottom-8 w-full text-center px-4 mt-12 lg:mt-0">
-                    <div className="flex flex-wrap justify-center gap-x-2 gap-y-2 text-xs text-gray-400">
-                        <a href="#" className="hover:underline">Help center</a>
-                        <span className="text-gray-300">|</span>
-                        <a href="#" className="hover:underline">Billing help</a>
-                        <span className="text-gray-300">|</span>
-                        <a href="#" className="hover:underline">Contact us</a>
-                        <span className="text-gray-300">|</span>
-                        <a href="#" className="hover:underline">Cookie Preferences</a>
-                        <span className="text-gray-300">|</span>
-                        <a href="#" className="hover:underline">Accessibility</a>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-400 mt-4">
-                        <a href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:underline">Terms of use</a>
-                        <a href="#" className="hover:underline">Refund policy</a>
-                        <a href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:underline">Privacy Policy</a>
-                        <a href="#" className="hover:underline">Data Subject Rights</a>
+                {/* Footer Links (From Trial Page) */}
+                <div className="lg:absolute bottom-8 w-full text-center px-4 mt-auto lg:mt-0 pt-8 lg:pt-0">
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
+                        <Link href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
+                        <span className="hidden sm:inline text-gray-300">|</span>
+                        <Link href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Terms of Use</Link>
+                        <span className="hidden sm:inline text-gray-300">|</span>
+                        <button
+                            className="hover:text-gray-900 transition-colors"
+                            onClick={() => window.UserWay?.widgetOpen?.()}
+                        >
+                            Accessibility
+                        </button>
                     </div>
                     <div className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-2">
                         <span>Copilot Inside</span>
@@ -243,6 +292,62 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Apple Login Error Modal */}
+            {showAppleError && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowAppleError(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-900"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="text-center mb-6">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FaApple className="w-6 h-6 text-red-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Login Failed</h3>
+                            <p className="text-gray-500 text-sm">
+                                Sorry, we couldn't connect to Apple. Please try another login method.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => { setShowAppleError(false); handleGoogleLogin(); }}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                            >
+                                <FcGoogle className="w-5 h-5" />
+                                Continue with Google
+                            </button>
+                            <button
+                                onClick={() => { setShowAppleError(false); setIsEmailMode(true); }}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                            >
+                                <Mail className="w-5 h-5" />
+                                Continue with Email
+                            </button>
+                            <button
+                                onClick={() => { setShowAppleError(false); handleFacebookLogin(); }}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                            >
+                                <FaFacebook className="w-5 h-5 text-[#1877F2]" />
+                                Continue with Facebook
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Fallback CSS to hide widget trigger if JS fails/lags */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+        .uway_widget_trigger { display: none !important; }
+        iframe[title="Accessibility Menu"] { display: none !important; } 
+        #userway-accessibility-widget { display: none !important; }
+      `}} />
         </main>
-    )
+    );
 }
