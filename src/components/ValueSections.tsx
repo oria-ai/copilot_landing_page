@@ -2,13 +2,15 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import AiCoachingVideo from './AiCoachingVideo';
 
 const values = [
     {
         id: 'ai-coach',
         title: 'Personalized AI Coaching',
         description: 'Your personal tutor that adapts to your pace. Get instant feedback as you work, ensuring you master every concept before moving on.',
-        image: '/artifacts/adaptive_learning_flow_1765320088222.png',
+        src: '/ai_feedback.mp4',
+        type: 'video',
         align: 'left'
     },
     {
@@ -74,13 +76,20 @@ export default function ValueSections() {
                         >
                             <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 group">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 to-accent-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
-                                <img
-                                    src={value.image}
-                                    alt={value.title}
-                                    className="object-cover w-full h-full"
-                                />
+                                {value.type === 'video' ? (
+                                    <AiCoachingVideo
+                                        src={value.src || ''}
+                                        className="w-full h-full"
+                                    />
+                                ) : (
+                                    <img
+                                        src={value.image}
+                                        alt={value.title}
+                                        className="object-cover w-full h-full"
+                                    />
+                                )}
                                 {/* Glass overlay */}
-                                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent" />
+                                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                             </div>
                         </motion.div>
 
