@@ -24,7 +24,11 @@ const testimonials = [
     }
 ];
 
+import { useAnimations } from '@/lib/AnimationContext';
+
 export default function SocialProof() {
+    const { animationsEnabled } = useAnimations();
+
     return (
         <section className="py-24 bg-black relative overflow-hidden">
             {/* Background Glow */}
@@ -36,10 +40,10 @@ export default function SocialProof() {
                     {stats.map((stat, i) => (
                         <motion.div
                             key={i}
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={animationsEnabled ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
                             whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
+                            viewport={{ once: false, margin: "-50px" }}
+                            transition={{ delay: animationsEnabled ? i * 0.1 : 0 }}
                             className="text-center"
                         >
                             <h3 className="text-6xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500 mb-2">
@@ -58,10 +62,10 @@ export default function SocialProof() {
                         {testimonials.map((t, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.2 + (i * 0.1) }}
+                                viewport={{ once: false, margin: "-50px" }}
+                                transition={{ delay: animationsEnabled ? 0.2 + (i * 0.1) : 0 }}
                                 className="p-6 rounded-2xl bg-white/5 border border-white/10 text-left"
                             >
                                 <div className="flex gap-1 text-yellow-500 mb-4">

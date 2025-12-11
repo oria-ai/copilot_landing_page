@@ -71,19 +71,29 @@ const tabs = [
     }
 ];
 
+import { useAnimations } from '@/lib/AnimationContext';
+
 export default function Hero() {
     const [activeTab, setActiveTab] = useState(tabs[0]);
     const [autoPlay, setAutoPlay] = useState(true);
+    const { animationsEnabled } = useAnimations();
 
     useEffect(() => {
-        if (!autoPlay) return;
+        // Stop auto-play if animations are globally disabled
+        if (!animationsEnabled) {
+            setAutoPlay(false);
+        }
+    }, [animationsEnabled]);
+
+    useEffect(() => {
+        if (!autoPlay || !animationsEnabled) return;
         const interval = setInterval(() => {
             const currentIndex = tabs.findIndex(t => t.id === activeTab.id);
             const nextIndex = (currentIndex + 1) % tabs.length;
             setActiveTab(tabs[nextIndex]);
         }, 5000);
         return () => clearInterval(interval);
-    }, [activeTab, autoPlay]);
+    }, [activeTab, autoPlay, animationsEnabled]);
 
     return (
         <section className="relative min-h-screen pt-32 pb-20 px-4 overflow-hidden flex flex-col items-center">
@@ -93,7 +103,7 @@ export default function Hero() {
             {/* Header Content */}
             <div className="text-center max-w-4xl mx-auto z-10 mb-12">
                 <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
                 >
@@ -101,7 +111,7 @@ export default function Hero() {
                     <span className="text-gradient">M365 Training Program</span>
                 </motion.h1>
                 <motion.p
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     className="text-gray-400 text-xl max-w-2xl mx-auto"
@@ -110,7 +120,7 @@ export default function Hero() {
                 </motion.p>
 
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     className="mt-8"
@@ -146,10 +156,10 @@ export default function Hero() {
                 <AnimatePresence mode='wait'>
                     <motion.div
                         key={activeTab.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={animationsEnabled ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        transition={{ duration: 0.5 }}
+                        exit={animationsEnabled ? { opacity: 0, scale: 1.05 } : { opacity: 0, scale: 1 }}
+                        transition={{ duration: animationsEnabled ? 0.5 : 0 }}
                         className="absolute inset-0 flex flex-col md:flex-row"
                     >
                         {/* Image/Demo Side */}
@@ -167,7 +177,7 @@ export default function Hero() {
                         {/* Text Side */}
                         <div className="w-full md:w-1/3 p-8 md:p-12 flex flex-col justify-center bg-black/40 backdrop-blur-md border-l border-white/5">
                             <motion.div
-                                initial={{ opacity: 0, x: 20 }}
+                                initial={animationsEnabled ? { opacity: 0, x: 20 } : { opacity: 1, x: 0 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.2 }}
                             >

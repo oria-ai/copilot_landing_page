@@ -111,7 +111,7 @@ export default function LoginPage() {
                     <div className="text-center">
                         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">Continue to Copilot Inside</h1>
                         <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
-                            By signing in, you agree to our <a href="#" className="underline">Terms of use</a>, to receive offers and updates from Copilot Inside, and acknowledge our <a href="#" className="underline">Privacy Policy</a>.
+                            By signing in, you agree to our <a href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="underline">Terms of use</a>, to receive offers and updates from Copilot Inside, and acknowledge our <a href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.
                         </p>
                     </div>
 
@@ -230,9 +230,9 @@ export default function LoginPage() {
                         <a href="#" className="hover:underline">Accessibility</a>
                     </div>
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-400 mt-4">
-                        <a href="#" className="hover:underline">Terms of use</a>
+                        <a href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:underline">Terms of use</a>
                         <a href="#" className="hover:underline">Refund policy</a>
-                        <a href="#" className="hover:underline">Privacy Policy</a>
+                        <a href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:underline">Privacy Policy</a>
                         <a href="#" className="hover:underline">Data Subject Rights</a>
                     </div>
                     <div className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-2">

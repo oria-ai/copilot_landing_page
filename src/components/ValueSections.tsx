@@ -34,7 +34,11 @@ const values = [
     }
 ];
 
+import { useAnimations } from '@/lib/AnimationContext';
+
 export default function ValueSections() {
+    const { animationsEnabled } = useAnimations();
+
     return (
         <section className="bg-black py-24 space-y-32">
             {values.map((value, i) => (
@@ -43,10 +47,10 @@ export default function ValueSections() {
 
                         {/* Text Side */}
                         <motion.div
-                            initial={{ opacity: 0, x: value.align === 'left' ? -50 : 50 }}
+                            initial={animationsEnabled ? { opacity: 0, x: value.align === 'left' ? -50 : 50 } : { opacity: 1, x: 0 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.8 }}
+                            viewport={{ once: false, margin: "-100px" }}
+                            transition={{ duration: animationsEnabled ? 0.8 : 0 }}
                             className="flex-1 space-y-8"
                         >
                             <h2 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -62,10 +66,10 @@ export default function ValueSections() {
 
                         {/* Image Side */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                            initial={animationsEnabled ? { opacity: 0, scale: 0.9, y: 50 } : { opacity: 1, scale: 1, y: 0 }}
                             whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.8 }}
+                            viewport={{ once: false, margin: "-100px" }}
+                            transition={{ duration: animationsEnabled ? 0.8 : 0 }}
                             className="flex-1 w-full"
                         >
                             <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 group">
