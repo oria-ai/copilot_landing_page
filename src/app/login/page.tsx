@@ -118,11 +118,31 @@ export default function LoginPage() {
             {/* Desktop: Left Half Image Side */}
             <div className="hidden lg:block w-1/2 relative overflow-hidden bg-black">
                 {/* Logo Top Left */}
-                <div className="absolute top-6 left-6 z-30 flex items-center gap-3">
-                    <img src="/logo_text.png" alt="Copilot Inside Logo" className="h-20 w-auto object-contain" />
+                <div className="absolute top-8 left-8 z-30 flex items-center gap-3">
+                    <img src="/Gemini_Generated_Image_m14tzom14tzom14t__1_-removebg-preview.png" alt="Copilot Inside Logo" className="w-24 h-24 object-contain" />
+                    <div className="flex flex-col">
+                        <span className="font-bold text-2xl tracking-tighter text-white leading-none">
+                            Copilot<span className="text-accent-primary">Inside</span>
+                        </span>
+                        <span className="text-xs font-medium text-gray-300 leading-none opacity-80 mt-1">
+                            by HandsOnAI
+                        </span>
+                    </div>
                 </div>
 
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-indigo-900/50 to-transparent pointer-events-none mix-blend-overlay" />
+                <img
+                    src="/artifacts/adaptive_learning_flow_1765320088222.png"
+                    alt="Login Visual"
+                    className="w-full h-full object-cover opacity-90"
+                />
 
+                {/* Center Overlay Text */}
+                <div className="absolute inset-0 flex items-center justify-center z-20">
+                    <h2 className="text-6xl font-bold text-white tracking-tight drop-shadow-2xl">
+                        7-day free trial
+                    </h2>
+                </div>
             </div>
 
             {/* Right Half: Light Mode Form */}
