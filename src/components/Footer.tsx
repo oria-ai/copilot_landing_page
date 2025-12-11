@@ -47,7 +47,7 @@ export default function Footer() {
                 <div className="flex gap-8">
                     <a href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
                     <a href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Terms of Service</a>
-                    <a href="#" className="hover:text-white transition-colors">Support</a>
+
                     <button
                         onClick={openAccessibilityMenu}
                         className="hover:text-white transition-colors cursor-pointer"

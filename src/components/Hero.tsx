@@ -184,9 +184,9 @@ export default function Hero() {
                                 <activeTab.icon className={`w-12 h-12 mb-6 text-white opacity-80`} />
                                 <h3 className="text-3xl font-bold mb-4 leading-tight">{activeTab.title}</h3>
                                 <p className="text-gray-400 leading-relaxed mb-8">{activeTab.description}</p>
-                                <a href="#" className="text-sm font-semibold hover:text-white text-gray-400 transition-colors flex items-center gap-2">
-                                    See course details <span className="text-lg">→</span>
-                                </a>
+                                <Link href="/login" className="text-sm font-semibold hover:text-white text-gray-400 transition-colors flex items-center gap-2">
+                                    Start Free Trial <span className="text-lg">→</span>
+                                </Link>
                             </motion.div>
                         </div>
                     </motion.div>
