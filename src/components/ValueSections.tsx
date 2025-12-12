@@ -4,36 +4,43 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import AiCoachingVideo from './AiCoachingVideo';
 
-const values = [
-    {
-        id: 'ai-coach',
+{
+    id: 'ai-coach',
         title: 'Personalized AI Coaching',
-        description: 'Your personal tutor that adapts to your pace. Get instant feedback as you work, ensuring you master every concept before moving on.',
-        src: '/ai_feedback.mp4',
-        type: 'video',
-        align: 'left'
-    },
-    {
-        id: 'my-path',
+            description: (
+                <>
+                    Your personal tutor that adapts to your pace.<br />
+                    Get instant feedback as you work, ensuring<br />
+                    you master every concept before moving on.
+                </>
+            ),
+                src: '/ai_feedback.mp4',
+                    type: 'video',
+                        align: 'left'
+},
+{
+    id: 'my-path',
         title: 'Role-Specific Paths',
-        description: 'Curated learning paths for Finance, HR, and Marketing. Learn exactly what you need for your job, skipping irrelevant content.',
-        image: '/artifacts/role_specific_ui_1765320138921.png',
-        align: 'right'
-    },
-    {
-        id: 'walkthrough',
+            description: 'Curated learning paths for Finance, HR, and Marketing. Learn exactly what you need for your job, skipping irrelevant content.',
+                src: '/path.mp4',
+                    type: 'video',
+                        align: 'right'
+},
+{
+    id: 'walkthrough',
         title: 'Interactive Walkthrough Guidance',
-        description: 'Go beyond passive watching. After every video lesson, reinforce your skills with our overlay technology that guides your clicks in real-time.',
-        image: '/artifacts/hands_on_lab_1765320152433.png',
-        align: 'left'
-    },
-    {
-        id: 'handson-practice',
+            description: 'Go beyond passive watching. After every video lesson, reinforce your skills with our overlay technology that guides your clicks in real-time.',
+                src: '/orientation.mp4',
+                    type: 'video',
+                        align: 'left'
+},
+{
+    id: 'handson-practice',
         title: 'Interactive Challenges',
-        description: 'Test your skills with real-world scenarios. Solve problems in a safe, simulated environment and get graded by AI instantly.',
-        image: '/artifacts/manager_analytics_dashboard_1765320102691.png', // Reusing dashboard image for now as "Grading" visual
-        align: 'right'
-    }
+            description: 'Test your skills with real-world scenarios. Solve problems in a safe, simulated environment and get graded by AI instantly.',
+                image: '/artifacts/manager_analytics_dashboard_1765320102691.png', // Reusing dashboard image for now as "Grading" visual
+                    align: 'right'
+}
 ];
 
 import { useAnimations } from '@/lib/AnimationContext';
@@ -74,8 +81,10 @@ export default function ValueSections() {
                             transition={{ duration: animationsEnabled ? 0.8 : 0 }}
                             className="flex-1 w-full"
                         >
-                            <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 group">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 to-accent-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                            <div className={`relative ${value.type === 'video' ? 'aspect-video' : 'aspect-[4/3]'} rounded-3xl overflow-hidden border border-white/10 group`}>
+                                {value.type !== 'video' && (
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 to-accent-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                                )}
                                 {value.type === 'video' ? (
                                     <AiCoachingVideo
                                         src={value.src || ''}
