@@ -37,8 +37,8 @@ const values = [
     },
     {
         id: 'handson-practice',
-        title: 'Interactive Challenges',
-        description: 'Test your skills with real-world scenarios. Solve problems in a safe, simulated environment and get graded by AI instantly.',
+        title: 'Hands-On Practice',
+        description: 'your skills in real-world scenarios, practicing directly in your real work environment - using the same tools, files, and workflows you use every day.',
         image: '/artifacts/manager_analytics_dashboard_1765320102691.png', // Reusing dashboard image for now as "Grading" visual
         align: 'right'
     }

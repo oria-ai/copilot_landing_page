@@ -147,9 +147,9 @@ export default function TrialPage() {
                         </div>
 
                         <div className="mt-12 flex justify-center">
-                            <button className="w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl">
+                            <Link href="/purchase" className="block w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl">
                                 Continue
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

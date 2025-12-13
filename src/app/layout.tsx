@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AnimationProvider } from "@/lib/AnimationContext";
+import { CookieConsentProvider } from "@/lib/CookieConsentContext";
+import CookieBanner from "@/components/CookieBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,27 +32,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-KJW3H27633"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-
-            gtag('config', 'G-KJW3H27633');
-          `}
-        </Script>
-        <Script
-          src="https://cdn.userway.org/widget.js"
-          data-account="u9qKBcpIlF"
-          strategy="afterInteractive"
-        />
-        <AnimationProvider>
-          {children}
-        </AnimationProvider>
+        <CookieConsentProvider>
+          <GoogleAnalytics gaId="G-KJW3H27633" />
+          <Script
+            src="https://cdn.userway.org/widget.js"
+            data-account="u9qKBcpIlF"
+            strategy="afterInteractive"
+          />
+          <AnimationProvider>
+            {children}
+          </AnimationProvider>
+          <CookieBanner cookiePolicyLink="/cookie.pdf" />
+        </CookieConsentProvider>
       </body>
     </html>
   );

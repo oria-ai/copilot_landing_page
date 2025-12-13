@@ -2,8 +2,16 @@
 
 import { FaPaypal, FaApple, FaGoogle, FaShieldAlt, FaLock } from "react-icons/fa";
 import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
+import { useState } from "react";
+import MaintenancePopup from "./MaintenancePopup";
 
 export default function ExpressPayment() {
+    const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+
+    const handlePaymentClick = () => {
+        setIsMaintenanceOpen(true);
+    };
+
     return (
         <section className="bg-white py-12 px-4 relative z-10" id="payment-section">
             <div className="max-w-md mx-auto space-y-10">
@@ -43,14 +51,20 @@ export default function ExpressPayment() {
                     <h3 className="font-bold text-gray-700 text-base">Payment Method</h3>
 
                     {/* PayPal */}
-                    <button className="w-full bg-[#FFC439] hover:bg-[#F4BB30] h-12 rounded-md flex items-center justify-center transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm">
+                    <button
+                        onClick={handlePaymentClick}
+                        className="w-full bg-[#FFC439] hover:bg-[#F4BB30] h-12 rounded-md flex items-center justify-center transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
+                    >
                         <span className="sr-only">Pay with PayPal</span>
                         <FaPaypal size={20} className="text-[#003087]" />
                         <span className="font-bold text-[#003087] italic text-lg ml-1">PayPal</span>
                     </button>
 
                     {/* Apple/Google Pay */}
-                    <button className="w-full bg-black hover:bg-gray-900 h-12 rounded-md flex items-center justify-center gap-2 text-white transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm">
+                    <button
+                        onClick={handlePaymentClick}
+                        className="w-full bg-black hover:bg-gray-900 h-12 rounded-md flex items-center justify-center gap-2 text-white transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
+                    >
                         <FaApple size={20} />
                         <span className="font-medium text-sm">Pay</span>
                         <span className="mx-2 text-gray-500 text-sm">|</span>
@@ -60,7 +74,10 @@ export default function ExpressPayment() {
                     </button>
 
                     {/* Credit Card */}
-                    <button className="w-full bg-white border border-gray-300 hover:border-gray-400 h-12 rounded-md flex items-center justify-center gap-3 text-gray-700 transition-all shadow-sm">
+                    <button
+                        onClick={handlePaymentClick}
+                        className="w-full bg-white border border-gray-300 hover:border-gray-400 h-12 rounded-md flex items-center justify-center gap-3 text-gray-700 transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
+                    >
                         <div className="flex gap-2 text-xl">
                             <SiVisa className="text-[#1A1F71]" />
                             <SiMastercard className="text-[#EB001B]" />
@@ -83,6 +100,12 @@ export default function ExpressPayment() {
                     </div>
                 </div>
             </div>
+
+            <MaintenancePopup
+                isOpen={isMaintenanceOpen}
+                onClose={() => setIsMaintenanceOpen(false)}
+                onJoinWaitlist={() => setIsMaintenanceOpen(false)}
+            />
         </section>
     );
 }

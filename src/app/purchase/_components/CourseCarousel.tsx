@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { FaArrowLeft, FaArrowRight, FaFileExcel, FaFileWord, FaFilePowerpoint, FaCommentDots, FaEnvelope } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaFileExcel, FaFileWord, FaFilePowerpoint, FaCommentDots, FaEnvelope, FaUsers, FaCloud } from "react-icons/fa";
 
 interface CourseCardProps {
     title: string;
@@ -68,6 +68,16 @@ export default function CourseCarousel() {
             title: "Copilot in Outlook",
             icon: <FaEnvelope />,
             description: "Manage your inbox, summarize threads, and draft emails faster.",
+        },
+        {
+            title: "Copilot in Teams",
+            icon: <FaUsers />,
+            description: "Summarize meetings, catch up on chats, and action items in real-time.",
+        },
+        {
+            title: "Copilot in OneDrive",
+            icon: <FaCloud />,
+            description: "Find files instantly, summarize content, and organize your cloud storage.",
         },
     ];
 
