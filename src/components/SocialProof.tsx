@@ -36,7 +36,8 @@ export default function SocialProof() {
 
             <div className="max-w-7xl mx-auto px-4">
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 border-y border-white/10 py-12">
+                {/* Stats Grid - Hidden as per request */}
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 border-y border-white/10 py-12">
                     {stats.map((stat, i) => (
                         <motion.div
                             key={i}
@@ -53,11 +54,11 @@ export default function SocialProof() {
                             <p className="text-gray-600 text-xs mt-1">{stat.sub}</p>
                         </motion.div>
                     ))}
-                </div>
+                </div> */}
 
                 {/* Testimonials */}
                 <div className="text-center max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold mb-12">Trusted by Creators</h2>
+                    <h2 className="text-3xl font-bold mb-12">Trusted by Managers Across Industries</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {testimonials.map((t, i) => (
                             <motion.div
