@@ -57,7 +57,7 @@ export default function Footer() {
                     </button>
                 </div>
                 <div>
-                    © 2024 HandsOnAI. All rights reserved.
+                    © 2025 HandsOnAI. All rights reserved.
                 </div>
             </div>
         </footer>

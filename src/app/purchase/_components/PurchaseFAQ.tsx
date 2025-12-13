@@ -13,13 +13,13 @@ function FAQItem({ question, answer }: FAQItemProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="border-b border-white/10 last:border-none">
+        <div className="border-b border-gray-300 last:border-none">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-center py-4 text-left hover:text-white transition-colors"
+                className="w-full flex justify-between items-center py-4 text-left hover:text-purple-700 transition-colors"
             >
-                <span className="font-medium text-gray-200">{question}</span>
-                {isOpen ? <FaChevronUp className="text-gray-400" /> : <FaChevronDown className="text-gray-400" />}
+                <span className="font-bold text-gray-800 text-base md:text-lg">{question}</span>
+                {isOpen ? <FaChevronUp className="text-gray-500" /> : <FaChevronDown className="text-gray-500" />}
             </button>
             <AnimatePresence>
                 {isOpen && (
@@ -30,7 +30,7 @@ function FAQItem({ question, answer }: FAQItemProps) {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                     >
-                        <p className="pb-4 text-gray-400 text-sm leading-relaxed">
+                        <p className="pb-4 text-gray-600 leading-relaxed font-medium text-sm md:text-base">
                             {answer}
                         </p>
                     </motion.div>
@@ -41,36 +41,56 @@ function FAQItem({ question, answer }: FAQItemProps) {
 }
 
 export default function PurchaseFAQ() {
+    const scrollToPayment = () => {
+        const paymentSection = document.getElementById("payment-section");
+        if (paymentSection) {
+            paymentSection.scrollIntoView({ behavior: "smooth" });
+        } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    };
+
     const faqs = [
         {
-            question: "How do I cancel my trial?",
+            question: "Is this course suitable for beginners?",
             answer:
-                "To cancel, head to your app's settings or visit your account page, sign in with your original login option, tap 'cancel your subscription', and follow the steps till confirmation.",
+                "Absolutely! We start with the basics of Copilot before moving to advanced workflows. No prior AI experience is needed.",
         },
         {
-            question: "Can I use app on more than one device?",
+            question: "Do I need an active Microsoft 365 subscription?",
             answer:
-                "Yes! As long as you sign into the app with the same login method used to make the original purchase, you can use it on multiple devices.",
+                "Yes, to follow along with the practical exercises in Word, Excel, and PowerPoint, you will need an active M365 Business or Enterprise license with Copilot.",
         },
         {
-            question: "What is your refund policy?",
+            question: "How long does it take to complete the course?",
             answer:
-                "You can request a refund within 14 days of the billing date. We aim to ensure your satisfaction with our products.",
+                "The course is self-paced. Most students complete the core modules in about 3-4 weeks, dedicating 2-3 hours per week.",
         },
         {
-            question: "How do I unsubscribe?",
+            question: "Will I receive a certificate upon completion?",
             answer:
-                "You can unsubscribe within the app settings or via our website. Simply log in, navigate to subscription settings, and choose to cancel.",
+                "Yes! Upon finishing all modules and the final project, you'll receive a verified certificate to showcase your new AI skills on LinkedIn.",
         },
     ];
 
     return (
-        <div className="bg-white/5 rounded-2xl border border-white/10 p-6 md:p-8">
-            <h3 className="text-xl font-bold mb-6">Frequently Asked Questions</h3>
-            <div className="flex flex-col">
-                {faqs.map((faq, index) => (
-                    <FAQItem key={index} question={faq.question} answer={faq.answer} />
-                ))}
+        <div className="bg-[#F9F8FD] w-full py-16">
+            <div className="max-w-2xl mx-auto px-4">
+                <h3 className="text-3xl font-black text-center mb-10 text-gray-900">FAQ</h3>
+                <div className="flex flex-col mb-12">
+                    {faqs.map((faq, index) => (
+                        <FAQItem key={index} question={faq.question} answer={faq.answer} />
+                    ))}
+                </div>
+
+                <div className="flex justify-center">
+                    <button
+                        onClick={scrollToPayment}
+                        className="bg-black hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    >
+                        Start Free Trial
+                    </button>
+                </div>
             </div>
         </div>
     );

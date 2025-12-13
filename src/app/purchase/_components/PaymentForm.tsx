@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FaLock, FaCreditCard, FaPaypal, FaApple, FaGoogle } from "react-icons/fa";
 
 export default function PaymentForm() {
-    const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
+    const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal" | "apple">("card");
 
     return (
         <div className="flex flex-col gap-6">
@@ -13,8 +13,8 @@ export default function PaymentForm() {
                 <button
                     onClick={() => setPaymentMethod("card")}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "card"
-                            ? "border-purple-500 bg-purple-500/10 text-purple-400"
-                            : "border-white/10 hover:border-white/20 text-gray-400"
+                        ? "border-purple-500 bg-purple-500/10 text-purple-400"
+                        : "border-white/10 hover:border-white/20 text-gray-400"
                         }`}
                 >
                     <FaCreditCard /> Card
@@ -22,11 +22,20 @@ export default function PaymentForm() {
                 <button
                     onClick={() => setPaymentMethod("paypal")}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "paypal"
-                            ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                            : "border-white/10 hover:border-white/20 text-gray-400"
+                        ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                        : "border-white/10 hover:border-white/20 text-gray-400"
                         }`}
                 >
                     <FaPaypal /> PayPal
+                </button>
+                <button
+                    onClick={() => setPaymentMethod("apple")}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "apple"
+                        ? "border-gray-200 bg-white/10 text-white"
+                        : "border-white/10 hover:border-white/20 text-gray-400"
+                        }`}
+                >
+                    <FaApple size={20} /> Pay
                 </button>
             </div>
 
@@ -88,6 +97,13 @@ export default function PaymentForm() {
                 {paymentMethod === "paypal" && (
                     <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 text-blue-200 text-sm">
                         You will be redirected to PayPal to complete your purchase securely.
+                    </div>
+                )}
+
+                {paymentMethod === "apple" && (
+                    <div className="p-4 bg-gray-500/10 rounded-lg border border-gray-500/20 text-gray-200 text-sm flex flex-col items-center gap-2">
+                        <FaApple size={32} />
+                        <p>Proceed with Apple Pay to complete your purchase securely.</p>
                     </div>
                 )}
             </div>
