@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { trackUserClick } from '@/utils/userActions';
 
 interface MaintenancePopupProps {
     isOpen: boolean;
@@ -44,13 +45,17 @@ export default function MaintenancePopup({ isOpen, onClose, onJoinWaitlist }: Ma
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-bold text-gray-900">Maintenance Mode</h3>
                                 <p className="text-gray-600 leading-relaxed">
-                                    Sorry, the product is under maintanace now. we will inform you by email as soon as it is available again
+                                    Sorry, the course is under maintanace now. we will inform you by email as soon as it is available again
                                 </p>
                             </div>
 
                             <div className="space-y-3 pt-2">
+
                                 <button
-                                    onClick={onJoinWaitlist}
+                                    onClick={() => {
+                                        trackUserClick('waitlist');
+                                        onJoinWaitlist();
+                                    }}
                                     className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-full transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-violet-200 cursor-pointer"
                                 >
                                     Join Waitlist

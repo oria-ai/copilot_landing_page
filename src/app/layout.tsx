@@ -3,8 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AnimationProvider } from "@/lib/AnimationContext";
 import { CookieConsentProvider } from "@/lib/CookieConsentContext";
+
 import CookieBanner from "@/components/CookieBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import GoogleTagManager from "@/components/GoogleTagManager";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,6 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CookieConsentProvider>
+          <GoogleTagManager gtmId="GTM-WX66MW72" />
           <GoogleAnalytics gaId="G-KJW3H27633" />
           <Script
             src="https://cdn.userway.org/widget.js"

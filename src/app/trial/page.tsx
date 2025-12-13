@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Lock, Bell, CheckCircle } from "lucide-react";
+import { trackUserClick } from '@/utils/userActions';
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -147,7 +148,11 @@ export default function TrialPage() {
                         </div>
 
                         <div className="mt-12 flex justify-center">
-                            <Link href="/purchase" className="block w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl">
+                            <Link
+                                href="/purchase"
+                                onClick={() => trackUserClick('trial')}
+                                className="block w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl"
+                            >
                                 Continue
                             </Link>
                         </div>

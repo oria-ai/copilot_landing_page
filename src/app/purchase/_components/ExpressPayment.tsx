@@ -4,11 +4,13 @@ import { FaPaypal, FaApple, FaGoogle, FaShieldAlt, FaLock } from "react-icons/fa
 import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
 import { useState } from "react";
 import MaintenancePopup from "./MaintenancePopup";
+import { trackUserClick } from '@/utils/userActions';
 
 export default function ExpressPayment() {
     const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
 
     const handlePaymentClick = () => {
+        trackUserClick('purchase');
         setIsMaintenanceOpen(true);
     };
 
