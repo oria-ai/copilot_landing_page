@@ -30,7 +30,10 @@ export default function Navbar() {
             <div className="max-w-[90rem] mx-auto px-6 md:px-12 lg:px-16">
                 <div className="flex items-center justify-between h-20">
                     {/* Logo - Left */}
-                    <div className="flex-shrink-0 font-bold text-2xl tracking-tighter text-white z-10">
+                    <div
+                        onClick={() => window.location.href = '/'}
+                        className="flex-shrink-0 font-bold text-2xl tracking-tighter text-white z-10 cursor-pointer"
+                    >
                         Copilot<span className="text-accent-primary">Inside</span>
                     </div>
 

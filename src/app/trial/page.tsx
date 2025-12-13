@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Lock, Bell, CheckCircle } from "lucide-react";
 import { trackUserClick } from '@/utils/userActions';
 import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 declare global {
     interface Window {
@@ -23,6 +25,9 @@ export default function TrialPage() {
     const step1Ref = useRef<HTMLDivElement>(null);
     const step2Ref = useRef<HTMLDivElement>(null);
     const [filledLineHeight, setFilledLineHeight] = useState(0);
+    const [user, setUser] = useState<{ email?: string } | null>(null);
+    const supabase = createClient();
+    const router = useRouter();
 
     // Logic to calculate dynamic line height
     useEffect(() => {
@@ -57,11 +62,23 @@ export default function TrialPage() {
         const interval = setInterval(hideIcon, 500);
         setTimeout(() => clearInterval(interval), 5000);
 
+        // Check for logged in user
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        checkUser();
+
         return () => {
             document.removeEventListener('userway:init_completed', hideIcon);
             clearInterval(interval);
         };
     }, []);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
+    };
 
     return (
         <div className="flex h-screen flex-col lg:flex-row bg-white overflow-hidden">
@@ -160,18 +177,36 @@ export default function TrialPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto border-t border-gray-100 py-6">
-                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
-                        <Link href="/privacy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
-                        <span className="hidden sm:inline text-gray-300">|</span>
-                        <Link href="/terms.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Terms of Use</Link>
-                        <span className="hidden sm:inline text-gray-300">|</span>
-                        <button
-                            className="hover:text-gray-900 transition-colors"
-                            onClick={() => window.UserWay?.widgetOpen?.()}
-                        >
-                            Accessibility
-                        </button>
+                <div className="mt-auto py-6 text-center">
+                    {/* Centered separator line */}
+                    <div className="mx-auto w-[90%] border-t border-gray-100 mb-6"></div>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
+                            <Link href="/privacy-policy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
+                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <Link href="/terms-of-use.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">Terms of Use</Link>
+                            <span className="hidden sm:inline text-gray-300">|</span>
+                            <button
+                                className="hover:text-gray-900 transition-colors"
+                                onClick={() => window.UserWay?.widgetOpen?.()}
+                            >
+                                Accessibility
+                            </button>
+                        </div>
+
+                        {/* User status */}
+                        {user && user.email && (
+                            <div className="text-xs text-gray-500 mt-1">
+                                <span>Logged in as {user.email}, </span>
+                                <button
+                                    onClick={handleLogout}
+                                    className="hover:text-gray-900 transition-colors underline cursor-pointer"
+                                >
+                                    log out
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

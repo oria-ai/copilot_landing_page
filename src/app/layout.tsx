@@ -45,7 +45,7 @@ export default function RootLayout({
           <AnimationProvider>
             {children}
           </AnimationProvider>
-          <CookieBanner cookiePolicyLink="/cookie.pdf" />
+          <CookieBanner cookiePolicyLink="/cookie-policy.pdf" />
         </CookieConsentProvider>
       </body>
     </html>
