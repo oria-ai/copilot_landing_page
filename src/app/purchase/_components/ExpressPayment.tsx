@@ -5,7 +5,7 @@ import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
 
 export default function ExpressPayment() {
     return (
-        <section className="bg-white py-12 px-4" id="payment-section">
+        <section className="bg-white py-12 px-4 relative z-10" id="payment-section">
             <div className="max-w-md mx-auto space-y-10">
                 {/* Trial Header */}
                 <div className="text-center space-y-1">

@@ -86,7 +86,7 @@ export default function PurchaseFAQ() {
                 <div className="flex justify-center">
                     <button
                         onClick={scrollToPayment}
-                        className="bg-black hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                        className="cursor-pointer bg-black hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                     >
                         Start Free Trial
                     </button>
