@@ -12,7 +12,8 @@ const tabs = [
         icon: FileText,
         title: 'Draft Better Documents',
         description: 'Learn how to use Copilot to draft resumes, reports, and emails instantly directly in Word.',
-        color: 'from-blue-500 to-cyan-500',
+        color: 'from-[#2B579A] to-[#1B5EBE]',
+        baseColor: '#2B579A',
         demo: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200'
     },
     {
@@ -21,7 +22,8 @@ const tabs = [
         icon: Table,
         title: 'Master Data Analysis',
         description: 'Learn how to use Copilot to generate complex formulas, budgets, and insights just by asking questions.',
-        color: 'from-green-500 to-emerald-500',
+        color: 'from-[#217346] to-[#10793F]',
+        baseColor: '#217346',
         demo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200'
     },
     {
@@ -30,7 +32,8 @@ const tabs = [
         icon: Presentation,
         title: 'Design Professional Slides',
         description: 'Learn how to use Copilot to turn your ideas into stunning presentations with AI-generated layouts.',
-        color: 'from-orange-500 to-red-500',
+        color: 'from-[#D04423] to-[#C13B1B]',
+        baseColor: '#D04423',
         demo: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=1200'
     },
     {
@@ -39,7 +42,8 @@ const tabs = [
         icon: Users,
         title: 'Streamline Collaboration',
         description: 'Learn how to use Copilot to summarize meetings, generate action items, and find information across chats.',
-        color: 'from-indigo-500 to-purple-500',
+        color: 'from-[#6264A7] to-[#464EB8]',
+        baseColor: '#6264A7',
         demo: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200'
     },
     {
@@ -48,7 +52,8 @@ const tabs = [
         icon: Mail,
         title: 'Control Your Inbox',
         description: 'Learn how to use Copilot to draft replies, summarize long threads, and prioritize your most important emails.',
-        color: 'from-blue-400 to-blue-600',
+        color: 'from-[#0072C6] to-[#0078D4]',
+        baseColor: '#0072C6',
         demo: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?auto=format&fit=crop&w=1200'
     },
     {
@@ -57,7 +62,9 @@ const tabs = [
         icon: MessageSquare,
         title: 'Chat With Your Data',
         description: 'Learn how to use Copilot Chat to synthesize information, brainstorm ideas, and get answers from your company data.',
-        color: 'from-purple-500 to-pink-500',
+        color: 'from-[#199fd7] to-[#ee5091]',
+        baseColor: '#199fd7',
+        customGradient: 'linear-gradient(135deg, #199fd7 0%, #ee5091 100%)',
         demo: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200'
     },
     {
@@ -66,7 +73,8 @@ const tabs = [
         icon: Cloud,
         title: 'Find Files Instantly',
         description: 'Learn how to use Copilot to find any file, photo, or document instantly with intelligent natural language search.',
-        color: 'from-sky-400 to-blue-500',
+        color: 'from-[#0078D4] to-[#0364B8]',
+        baseColor: '#0078D4',
         demo: 'https://images.unsplash.com/photo-1614624532983-4ce03382d63d?auto=format&fit=crop&w=1200'
     }
 ];
@@ -133,22 +141,46 @@ export default function Hero() {
 
             {/* Tab Navigation */}
             <div id="tools" className="flex flex-wrap justify-center gap-2 mb-12 z-10 scroll-mt-32">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => {
-                            setActiveTab(tab);
-                            setAutoPlay(false);
-                        }}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 border ${activeTab.id === tab.id
-                            ? 'bg-white/10 border-white/20 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                            : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                            }`}
-                    >
-                        <tab.icon className="w-4 h-4" />
-                        {tab.label}
-                    </button>
-                ))}
+                {tabs.map((tab) => {
+                    const isActive = activeTab.id === tab.id;
+                    // @ts-ignore - customGradient exists on some tabs
+                    const gradientStyle = isActive && tab.customGradient ? {
+                        backgroundImage: tab.customGradient,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        color: 'transparent'
+                    } : {
+                        color: isActive ? tab.baseColor : undefined
+                    };
+
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => {
+                                setActiveTab(tab);
+                                setAutoPlay(false);
+                            }}
+                            style={isActive ? {
+                                borderColor: tab.baseColor,
+                                backgroundColor: `${tab.baseColor}10`, // 10% opacity
+                                boxShadow: `0 0 20px ${tab.baseColor}40`, // 25% opacity glow
+                            } : {}}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
+                                ? ''
+                                : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                }`}
+                        >
+                            <tab.icon
+                                className="w-4 h-4"
+                                style={isActive ? { color: tab.baseColor } : {}}
+                            />
+                            <span style={gradientStyle}>
+                                {tab.label}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Dynamic Content Display */}
@@ -181,8 +213,27 @@ export default function Hero() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.2 }}
                             >
-                                <activeTab.icon className={`w-12 h-12 mb-6 text-white opacity-80`} />
-                                <h3 className="text-3xl font-bold mb-4 leading-tight">{activeTab.title}</h3>
+                                <activeTab.icon
+                                    className={`w-12 h-12 mb-6`}
+                                    style={{ color: activeTab.baseColor }}
+                                />
+                                <h3
+                                    className="text-3xl font-bold mb-4 leading-tight"
+                                    style={
+                                        // @ts-ignore
+                                        activeTab.customGradient ? {
+                                            backgroundImage: activeTab.customGradient,
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            backgroundClip: 'text',
+                                            color: 'transparent'
+                                        } : {
+                                            color: activeTab.baseColor
+                                        }
+                                    }
+                                >
+                                    {activeTab.title}
+                                </h3>
                                 <p className="text-gray-400 leading-relaxed mb-8">{activeTab.description}</p>
                                 <Link href="/login" className="text-sm font-semibold hover:text-white text-gray-400 transition-colors flex items-center gap-2">
                                     Start Free Trial <span className="text-lg">→</span>
