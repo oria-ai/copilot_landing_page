@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
+import { trackLoginWith } from '@/utils/userActions';
 
 declare global {
     interface Window {
@@ -56,26 +57,57 @@ export default function LoginPage() {
     }, []);
 
     const handleGoogleLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${BASE_URL}/auth/callback`,
-            },
-        });
-        if (error) console.error('Error logging in:', error.message);
+        const redirectTo = `${BASE_URL}/auth/callback`;
+
+        // If we currently have an anonymous user, link the OAuth identity to it
+        // so the user keeps the same UUID (anon -> signed).
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "google",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo },
+            });
+
+        if (error) console.error("Error logging in:", error.message);
+    };
+
+    const handleGoogleLoginClick = async () => {
+        await trackLoginWith("google");
+        await handleGoogleLogin();
     };
 
     const handleFacebookLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'facebook',
-            options: {
-                redirectTo: `${BASE_URL}/auth/callback`,
-            },
-        });
-        if (error) console.error('Error logging in:', error.message);
+        const redirectTo = `${BASE_URL}/auth/callback`;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "facebook",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "facebook",
+                options: { redirectTo },
+            });
+
+        if (error) console.error("Error logging in:", error.message);
+    };
+
+    const handleFacebookLoginClick = async () => {
+        await trackLoginWith("facebook");
+        await handleFacebookLogin();
     };
 
     const handleAppleLogin = async () => {
+        void trackLoginWith("apple");
         setIsAppleLoading(true);
         // Simulate loading for 1 second
         setTimeout(() => {
@@ -155,7 +187,7 @@ export default function LoginPage() {
                         {/* Google Button */}
                         {!isEmailMode && (
                             <button
-                                onClick={handleGoogleLogin}
+                                onClick={handleGoogleLoginClick}
                                 className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
                             >
                                 <FcGoogle className="w-6 h-6" />
@@ -178,7 +210,10 @@ export default function LoginPage() {
                         {/* Email Button Logic */}
                         {!isEmailMode ? (
                             <button
-                                onClick={() => setIsEmailMode(true)}
+                                onClick={() => {
+                                    void trackLoginWith("email");
+                                    setIsEmailMode(true);
+                                }}
                                 className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"
                             >
                                 <Mail className="w-6 h-6 text-gray-900" />
@@ -247,7 +282,7 @@ export default function LoginPage() {
                             <div className="pt-2 flex flex-col gap-3">
                                 {showMoreOptions && (
                                     <button
-                                        onClick={handleFacebookLogin}
+                                        onClick={handleFacebookLoginClick}
                                         className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
                                     >
                                         <FaFacebook className="w-6 h-6 text-[#1877F2]" />
@@ -299,6 +334,7 @@ export default function LoginPage() {
                         <button
                             onClick={() => setShowAppleError(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 cursor-pointer"
+                            aria-label="Close"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -315,7 +351,10 @@ export default function LoginPage() {
 
                         <div className="space-y-3">
                             <button
-                                onClick={() => { setShowAppleError(false); handleGoogleLogin(); }}
+                                onClick={() => {
+                                    setShowAppleError(false);
+                                    void handleGoogleLogin();
+                                }}
                                 className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                             >
                                 <FcGoogle className="w-5 h-5" />
@@ -329,7 +368,10 @@ export default function LoginPage() {
                                 Continue with Email
                             </button>
                             <button
-                                onClick={() => { setShowAppleError(false); handleFacebookLogin(); }}
+                                onClick={() => {
+                                    setShowAppleError(false);
+                                    void handleFacebookLogin();
+                                }}
                                 className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
                             >
                                 <FaFacebook className="w-5 h-5 text-[#1877F2]" />

@@ -5,6 +5,7 @@ import { AnimationProvider } from "@/lib/AnimationContext";
 import { CookieConsentProvider } from "@/lib/CookieConsentContext";
 
 import CookieBanner from "@/components/CookieBanner";
+import AffiliationBootstrap from "@/components/AffiliationBootstrap";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import GoogleTagManager from "@/components/GoogleTagManager";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CookieConsentProvider>
+          <AffiliationBootstrap />
           <GoogleTagManager gtmId="GTM-WX66MW72" />
           <GoogleAnalytics gaId="G-KJW3H27633" />
           <Script

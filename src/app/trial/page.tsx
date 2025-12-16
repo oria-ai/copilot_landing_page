@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Lock, Bell, CheckCircle } from "lucide-react";
-import { trackUserClick } from '@/utils/userActions';
+import { trackTrialClick } from '@/utils/userActions';
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -167,7 +167,7 @@ export default function TrialPage() {
                         <div className="mt-12 flex justify-center">
                             <Link
                                 href="/purchase"
-                                onClick={() => trackUserClick('trial')}
+                                onClick={() => void trackTrialClick()}
                                 className="block w-full max-w-[320px] rounded-full bg-gray-900 py-4 text-center text-lg font-bold text-white transition-all hover:bg-black hover:scale-105 active:scale-95 shadow-xl"
                             >
                                 Continue

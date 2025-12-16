@@ -12,8 +12,9 @@ const tabs = [
         icon: FileText,
         title: 'Draft Better Documents',
         description: 'Learn how to use Copilot to draft resumes, reports, and emails instantly directly in Word.',
-        color: 'from-[#2B579A] to-[#1B5EBE]',
-        baseColor: '#2B579A',
+        color: 'from-[#1B5EBE] to-[#41A5EE]',
+        baseColor: '#1B5EBE',
+        customGradient: 'linear-gradient(135deg, #1B5EBE 0%, #41A5EE 100%)',
         demo: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200'
     },
     {
@@ -22,8 +23,9 @@ const tabs = [
         icon: Table,
         title: 'Master Data Analysis',
         description: 'Learn how to use Copilot to generate complex formulas, budgets, and insights just by asking questions.',
-        color: 'from-[#217346] to-[#10793F]',
-        baseColor: '#217346',
+        color: 'from-[#10793F] to-[#185C37]',
+        baseColor: '#10793F',
+        customGradient: 'linear-gradient(135deg, #185C37 0%, #10793F 100%)',
         demo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200'
     },
     {
@@ -32,8 +34,9 @@ const tabs = [
         icon: Presentation,
         title: 'Design Professional Slides',
         description: 'Learn how to use Copilot to turn your ideas into stunning presentations with AI-generated layouts.',
-        color: 'from-[#D04423] to-[#C13B1B]',
-        baseColor: '#D04423',
+        color: 'from-[#C13B1B] to-[#D35230]',
+        baseColor: '#C13B1B',
+        customGradient: 'linear-gradient(135deg, #C13B1B 0%, #D35230 100%)',
         demo: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=1200'
     },
     {
@@ -42,8 +45,9 @@ const tabs = [
         icon: Users,
         title: 'Streamline Collaboration',
         description: 'Learn how to use Copilot to summarize meetings, generate action items, and find information across chats.',
-        color: 'from-[#6264A7] to-[#464EB8]',
-        baseColor: '#6264A7',
+        color: 'from-[#464EB8] to-[#7B83EB]',
+        baseColor: '#464EB8',
+        customGradient: 'linear-gradient(135deg, #464EB8 0%, #7B83EB 100%)',
         demo: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200'
     },
     {
@@ -52,8 +56,9 @@ const tabs = [
         icon: Mail,
         title: 'Control Your Inbox',
         description: 'Learn how to use Copilot to draft replies, summarize long threads, and prioritize your most important emails.',
-        color: 'from-[#0072C6] to-[#0078D4]',
-        baseColor: '#0072C6',
+        color: 'from-[#0078D4] to-[#0364B8]',
+        baseColor: '#0078D4',
+        customGradient: 'linear-gradient(135deg, #0364B8 0%, #0078D4 100%)',
         demo: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?auto=format&fit=crop&w=1200'
     },
     {
@@ -62,9 +67,9 @@ const tabs = [
         icon: MessageSquare,
         title: 'Chat With Your Data',
         description: 'Learn how to use Copilot Chat to synthesize information, brainstorm ideas, and get answers from your company data.',
-        color: 'from-[#199fd7] to-[#ee5091]',
-        baseColor: '#199fd7',
-        customGradient: 'linear-gradient(135deg, #199fd7 0%, #ee5091 100%)',
+        color: 'from-[#44A87F] to-[#BD4FB9]',
+        baseColor: '#44A87F',
+        customGradient: 'linear-gradient(135deg, #44A87F 0%, #BD4FB9 100%)',
         demo: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200'
     },
     {
@@ -73,13 +78,15 @@ const tabs = [
         icon: Cloud,
         title: 'Find Files Instantly',
         description: 'Learn how to use Copilot to find any file, photo, or document instantly with intelligent natural language search.',
-        color: 'from-[#0078D4] to-[#0364B8]',
-        baseColor: '#0078D4',
+        color: 'from-[#28A8EA] to-[#1490DF]',
+        baseColor: '#28A8EA',
+        customGradient: 'linear-gradient(135deg, #1490DF 0%, #28A8EA 100%)',
         demo: 'https://images.unsplash.com/photo-1614624532983-4ce03382d63d?auto=format&fit=crop&w=1200'
     }
 ];
 
 import { useAnimations } from '@/lib/AnimationContext';
+import { trackStartFreeTrialClick } from '@/utils/userActions';
 
 export default function Hero() {
     const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -133,7 +140,11 @@ export default function Hero() {
                     transition={{ delay: 0.2 }}
                     className="mt-8"
                 >
-                    <Link href="/login" className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200">
+                    <Link
+                        href="/login"
+                        onClick={() => void trackStartFreeTrialClick(2)}
+                        className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200"
+                    >
                         Start Free Trial
                     </Link>
                 </motion.div>
@@ -159,7 +170,6 @@ export default function Hero() {
                             key={tab.id}
                             onClick={() => {
                                 setActiveTab(tab);
-                                setAutoPlay(false);
                             }}
                             style={isActive ? {
                                 borderColor: tab.baseColor,
@@ -235,7 +245,11 @@ export default function Hero() {
                                     {activeTab.title}
                                 </h3>
                                 <p className="text-gray-400 leading-relaxed mb-8">{activeTab.description}</p>
-                                <Link href="/login" className="text-sm font-semibold hover:text-white text-gray-400 transition-colors flex items-center gap-2">
+                                <Link
+                                    href="/login"
+                                    onClick={() => void trackStartFreeTrialClick(3)}
+                                    className="text-sm font-semibold hover:text-white text-gray-400 transition-colors flex items-center gap-2"
+                                >
                                     Start Free Trial <span className="text-lg">→</span>
                                 </Link>
                             </motion.div>

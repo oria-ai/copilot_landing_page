@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import Link from 'next/link';
+import { trackStartFreeTrialClick } from '@/utils/userActions';
 
 export default function Navbar() {
     const { scrollY } = useScroll();
@@ -48,9 +50,13 @@ export default function Navbar() {
 
                     {/* CTA - Right */}
                     <div className="flex-shrink-0 z-10">
-                        <a href="/login" className="bg-transparent border-2 border-accent-primary text-white text-base font-bold py-3 px-8 rounded-full hover:bg-accent-primary/20 hover:scale-105 transition-all duration-200 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                        <Link
+                            href="/login"
+                            onClick={() => void trackStartFreeTrialClick(1)}
+                            className="bg-transparent border-2 border-accent-primary text-white text-base font-bold py-3 px-8 rounded-full hover:bg-accent-primary/20 hover:scale-105 transition-all duration-200 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                        >
                             Start free trial
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

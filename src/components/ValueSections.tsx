@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useAnimations } from '@/lib/AnimationContext';
 import AiCoachingVideo from './AiCoachingVideo';
+import { trackStartFreeTrialClick } from '@/utils/userActions';
 
 type ValueItem = {
     id: string;
@@ -56,7 +57,7 @@ export default function ValueSections() {
 
     return (
         <section className="bg-black py-24 space-y-32">
-            {values.map((value) => (
+            {values.map((value, index) => (
                 <div key={value.id} id={value.id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
                     <div className={`flex flex-col ${value.align === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-16`}>
 
@@ -74,7 +75,11 @@ export default function ValueSections() {
                             <p className="text-xl text-gray-400 leading-relaxed">
                                 {value.description}
                             </p>
-                            <Link href="/login" className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200">
+                            <Link
+                                href="/login"
+                                onClick={() => void trackStartFreeTrialClick(4 + index)}
+                                className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200"
+                            >
                                 Start Free Trial
                             </Link>
                         </motion.div>

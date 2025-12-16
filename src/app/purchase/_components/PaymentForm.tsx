@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FaLock, FaCreditCard, FaPaypal, FaApple, FaGoogle } from "react-icons/fa";
+import { trackPaymentMethodClick } from "@/utils/userActions";
 
 export default function PaymentForm() {
     const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal" | "apple">("card");
@@ -11,7 +12,10 @@ export default function PaymentForm() {
             {/* Payment Method Selector */}
             <div className="flex gap-4">
                 <button
-                    onClick={() => setPaymentMethod("card")}
+                    onClick={() => {
+                        setPaymentMethod("card");
+                        void trackPaymentMethodClick("card");
+                    }}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "card"
                         ? "border-purple-500 bg-purple-500/10 text-purple-400"
                         : "border-white/10 hover:border-white/20 text-gray-400"
@@ -20,7 +24,10 @@ export default function PaymentForm() {
                     <FaCreditCard /> Card
                 </button>
                 <button
-                    onClick={() => setPaymentMethod("paypal")}
+                    onClick={() => {
+                        setPaymentMethod("paypal");
+                        void trackPaymentMethodClick("paypal");
+                    }}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "paypal"
                         ? "border-blue-500 bg-blue-500/10 text-blue-400"
                         : "border-white/10 hover:border-white/20 text-gray-400"
@@ -29,7 +36,10 @@ export default function PaymentForm() {
                     <FaPaypal /> PayPal
                 </button>
                 <button
-                    onClick={() => setPaymentMethod("apple")}
+                    onClick={() => {
+                        setPaymentMethod("apple");
+                        void trackPaymentMethodClick("apple");
+                    }}
                     className={`flex-1 py-3 px-4 rounded-lg border-2 flex items-center justify-center gap-2 font-medium transition-all ${paymentMethod === "apple"
                         ? "border-gray-200 bg-white/10 text-white"
                         : "border-white/10 hover:border-white/20 text-gray-400"

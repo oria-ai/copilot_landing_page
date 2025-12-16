@@ -1,0 +1,88 @@
+/* HandsOnAI Policy PDF Stylesheet */
+
+@page {
+  size: A4;
+  margin: 20mm 18mm;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #111827;
+}
+
+h1 {
+  font-size: 22pt;
+  margin: 0 0 8pt 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 14pt;
+  margin: 20pt 0 8pt 0;
+  font-weight: 700;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4pt;
+}
+
+h3 {
+  font-size: 12pt;
+  margin: 16pt 0 6pt 0;
+  font-weight: 700;
+}
+
+h4 {
+  font-size: 11pt;
+  margin: 12pt 0 6pt 0;
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 10pt 0;
+}
+
+ul, ol {
+  margin: 0 0 10pt 18pt;
+  padding: 0;
+}
+
+li {
+  margin: 0 0 6pt 0;
+}
+
+strong {
+  font-weight: 700;
+}
+
+code {
+  font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+  font-size: 10pt;
+  background: #f3f4f6;
+  padding: 1pt 4pt;
+  border-radius: 4pt;
+}
+
+pre code {
+  display: block;
+  padding: 10pt;
+  white-space: pre-wrap;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 16pt 0;
+}
+
+a {
+  color: #111827;
+  text-decoration: none;
+}
+
