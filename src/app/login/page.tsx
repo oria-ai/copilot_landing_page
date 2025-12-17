@@ -92,28 +92,34 @@ export default function LoginPage() {
         const errorCode = queryErrorCode ?? hashErrorCode ?? (queryError || hashError);
         const errorDescription = queryErrorDescription ?? hashErrorDescription;
 
-        if (errorCode || errorDescription) {
-            setAuthError({ code: errorCode, description: errorDescription });
+        // If we attempted to link an OAuth identity to an anonymous user but that identity already exists
+        // on another account, fall back to normal OAuth sign-in (common/expected case).
+        const provider = window.sessionStorage.getItem(OAUTH_INTENT_PROVIDER_KEY);
+        const alreadyTried = window.sessionStorage.getItem(OAUTH_FALLBACK_USED_KEY) === "1";
+        const canAutoFallback =
+            errorCode === "identity_already_exists" &&
+            (provider === "google" || provider === "facebook") &&
+            !alreadyTried;
 
+        if (errorCode || errorDescription) {
             // Clean the URL so a refresh doesn't keep showing the error.
             window.history.replaceState({}, "", "/login");
         }
 
-        // If we attempted to link an OAuth identity to an anonymous user but that identity already exists
-        // on another account, fall back to normal OAuth sign-in (common/expected case).
-        if (errorCode === "identity_already_exists") {
-            const provider = window.sessionStorage.getItem(OAUTH_INTENT_PROVIDER_KEY);
-            const alreadyTried = window.sessionStorage.getItem(OAUTH_FALLBACK_USED_KEY) === "1";
+        if (canAutoFallback) {
+            window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+            setAuthError(null);
 
-            if ((provider === "google" || provider === "facebook") && !alreadyTried) {
-                window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+            const redirectTo = `${BASE_URL}/auth/callback`;
+            void supabase.auth.signInWithOAuth({
+                provider: provider as "google" | "facebook",
+                options: { redirectTo },
+            });
+            return;
+        }
 
-                const redirectTo = `${BASE_URL}/auth/callback`;
-                void supabase.auth.signInWithOAuth({
-                    provider,
-                    options: { redirectTo },
-                });
-            }
+        if (errorCode || errorDescription) {
+            setAuthError({ code: errorCode, description: errorDescription });
         }
     }, [BASE_URL, supabase]);
 
@@ -145,6 +151,20 @@ export default function LoginPage() {
         if (error) {
             console.error("Error logging in:", error.message);
             const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+
+            // If the Google identity is already linked to another account, sign in normally instead of linking.
+            if (errorCode === "identity_already_exists") {
+                if (typeof window !== "undefined") {
+                    window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+                }
+
+                void supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo },
+                });
+                return;
+            }
+
             setAuthError({ code: errorCode, description: error.message });
         }
     };
@@ -182,6 +202,20 @@ export default function LoginPage() {
         if (error) {
             console.error("Error logging in:", error.message);
             const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+
+            // If the Facebook identity is already linked to another account, sign in normally instead of linking.
+            if (errorCode === "identity_already_exists") {
+                if (typeof window !== "undefined") {
+                    window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+                }
+
+                void supabase.auth.signInWithOAuth({
+                    provider: "facebook",
+                    options: { redirectTo },
+                });
+                return;
+            }
+
             setAuthError({ code: errorCode, description: error.message });
         }
     };
