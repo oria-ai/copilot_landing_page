@@ -3,32 +3,36 @@
 import { useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { getOrCreateAffiliationUserId } from "@/utils/userActions";
 
 type AffiliationUpsert = {
   user_id: string;
+  url?: string | null;
 
-  email: string | null;
-  phone: string | null;
-  auth_created_at: string | null;
-  confirmed_at: string | null;
-  last_sign_in_at: string | null;
-  auth_updated_at: string | null;
-  is_anonymous: boolean | null;
-  is_sso_user: boolean | null;
-  raw_app_meta_data: Record<string, unknown>;
-  raw_user_meta_data: Record<string, unknown>;
+  // Supabase Auth user id (auth.users.id). A single auth user can map to many browsers.
+  auth_id?: string | null;
 
-  provider: string | null;
-  providers: string[] | null;
-  name: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
+  email?: string | null;
+  phone?: string | null;
+  auth_created_at?: string | null;
+  confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+  auth_updated_at?: string | null;
+  is_anonymous?: boolean | null;
+  is_sso_user?: boolean | null;
+  raw_app_meta_data?: Record<string, unknown>;
+  raw_user_meta_data?: Record<string, unknown>;
 
-  url: string | null;
+  provider?: string | null;
+  providers?: string[] | null;
+  name?: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+
   updated_at: string;
 };
 
-function buildAffiliationUpsert(user: User): AffiliationUpsert {
+function buildAuthSnapshot(user: User): Omit<AffiliationUpsert, "user_id" | "updated_at"> {
   const app = (user.app_metadata ?? {}) as Record<string, unknown>;
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
 
@@ -68,7 +72,7 @@ function buildAffiliationUpsert(user: User): AffiliationUpsert {
   const isSsoUser = typeof anyUser["is_sso_user"] === "boolean" ? (anyUser["is_sso_user"] as boolean) : null;
 
   return {
-    user_id: user.id,
+    auth_id: user.id,
 
     email: user.email ?? null,
     phone,
@@ -86,9 +90,6 @@ function buildAffiliationUpsert(user: User): AffiliationUpsert {
     name,
     full_name: fullName,
     avatar_url: avatarUrl,
-
-    url: typeof window !== "undefined" ? window.location.href : null,
-    updated_at: new Date().toISOString(),
   };
 }
 
@@ -96,19 +97,90 @@ export default function AffiliationBootstrap() {
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+    const browserUserId = getOrCreateAffiliationUserId();
+    if (!browserUserId) return;
 
-    const upsertAffiliation = async (user: User) => {
-      const payload = buildAffiliationUpsert(user);
-      const { error } = await supabase
+    const firstEntryUrl = typeof window !== "undefined" ? window.location.href : null;
+
+    const writeInitialUrlIfMissing = async () => {
+      // We want to persist only the first URL the user entered the app with.
+      // Never overwrite an existing value.
+      if (!firstEntryUrl) return;
+
+      const { error: nullUrlError } = await supabase
         .from("affiliation")
-        .upsert(payload, { onConflict: "user_id" });
+        .update({ url: firstEntryUrl })
+        .eq("user_id", browserUserId)
+        .is("url", null);
 
-      if (error) {
-        console.error("[affiliation] upsert failed:", error);
+      if (nullUrlError) {
+        console.error("[affiliation] set initial url failed (url is null):", nullUrlError);
+      }
+
+      const { error: emptyUrlError } = await supabase
+        .from("affiliation")
+        .update({ url: firstEntryUrl })
+        .eq("user_id", browserUserId)
+        .eq("url", "");
+
+      if (emptyUrlError) {
+        console.error("[affiliation] set initial url failed (url is empty):", emptyUrlError);
       }
     };
 
-    const ensureSessionAndSync = async () => {
+    const ensureRowExists = async () => {
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("affiliation")
+        .upsert({ user_id: browserUserId, updated_at: now }, { onConflict: "user_id" });
+
+      if (!error) return;
+
+      // If the DB enforces NOT NULL on `url`, the initial insert may fail.
+      // Retry once including the first-entry URL (safe: this path only happens on insert).
+      const isUrlNotNullViolation =
+        error.code === "23502" && typeof error.message === "string" && error.message.toLowerCase().includes("url");
+
+      if (isUrlNotNullViolation && firstEntryUrl) {
+        const { error: retryError } = await supabase
+          .from("affiliation")
+          // If a row was created concurrently, do NOT update it (preserve existing url).
+          .upsert(
+            { user_id: browserUserId, url: firstEntryUrl, updated_at: now },
+            { onConflict: "user_id", ignoreDuplicates: true },
+          );
+
+        if (retryError) {
+          console.error("[affiliation] ensure row exists failed (retry with url):", retryError);
+          return;
+        }
+
+        return;
+      }
+
+      console.error("[affiliation] ensure row exists failed:", error);
+    };
+
+    const upsertAuthSnapshot = async (user: User) => {
+      await ensureRowExists();
+
+      const payload: AffiliationUpsert = {
+        user_id: browserUserId,
+        ...buildAuthSnapshot(user),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("affiliation").upsert(payload, { onConflict: "user_id" });
+      if (error) {
+        console.error("[affiliation] upsert auth snapshot failed:", error);
+      }
+    };
+
+    const sync = async () => {
+      await ensureRowExists();
+      await writeInitialUrlIfMissing();
+
       const {
         data: { session },
         error: sessionError,
@@ -118,40 +190,24 @@ export default function AffiliationBootstrap() {
         console.error("[affiliation] getSession failed:", sessionError);
       }
 
-      let user = session?.user ?? null;
-
-      if (!user) {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          console.error("[affiliation] signInAnonymously failed:", error);
-          return;
-        }
-        user = data.user ?? null;
-      }
-
+      const user = session?.user ?? null;
       if (cancelled || !user) return;
-      await upsertAffiliation(user);
+
+      await upsertAuthSnapshot(user);
     };
 
-    void ensureSessionAndSync();
+    void sync();
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
 
       const user = session?.user ?? null;
 
-      // If the user signs out, immediately create a fresh anonymous session
-      // so we keep a stable visitor id for the rest of the browsing session.
-      if (event === "SIGNED_OUT") {
-        void ensureSessionAndSync();
-        return;
-      }
-
       if (!user) return;
 
       // Sync only on meaningful changes (avoid TOKEN_REFRESHED spam).
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "USER_UPDATED") {
-        void upsertAffiliation(user);
+        void upsertAuthSnapshot(user);
       }
     });
 

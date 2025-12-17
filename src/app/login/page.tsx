@@ -23,13 +23,14 @@ declare global {
 }
 
 export default function LoginPage() {
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [isEmailMode, setIsEmailMode] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showMoreOptions, setShowMoreOptions] = useState(false);
+    const [authError, setAuthError] = useState<{ code: string | null; description: string | null } | null>(null);
 
     // Apple Login Mock State
     const [isAppleLoading, setIsAppleLoading] = useState(false);
@@ -56,25 +57,47 @@ export default function LoginPage() {
         };
     }, []);
 
+    // Parse callback errors and show them on the page.
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const url = new URL(window.location.href);
+        const queryError = url.searchParams.get("error");
+        const queryErrorCode = url.searchParams.get("error_code");
+        const queryErrorDescription = url.searchParams.get("error_description");
+
+        const hash = window.location.hash?.startsWith("#") ? window.location.hash.slice(1) : "";
+        const hashParams = new URLSearchParams(hash);
+        const hashError = hashParams.get("error");
+        const hashErrorCode = hashParams.get("error_code");
+        const hashErrorDescription = hashParams.get("error_description");
+
+        const errorCode = queryErrorCode ?? hashErrorCode ?? (queryError || hashError);
+        const errorDescription = queryErrorDescription ?? hashErrorDescription;
+
+        if (errorCode || errorDescription) {
+            setAuthError({ code: errorCode, description: errorDescription });
+
+            // Clean the URL so a refresh doesn't keep showing the error.
+            window.history.replaceState({}, "", "/login");
+        }
+    }, [BASE_URL, supabase]);
+
     const handleGoogleLogin = async () => {
+        setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // If we currently have an anonymous user, link the OAuth identity to it
-        // so the user keeps the same UUID (anon -> signed).
-        const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        // Let Supabase Auth be the source of truth: normal OAuth sign-in / sign-up flow.
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo },
+        });
 
-        const { error } = isAnonymous
-            ? await supabase.auth.linkIdentity({
-                provider: "google",
-                options: { redirectTo },
-            })
-            : await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo },
-            });
-
-        if (error) console.error("Error logging in:", error.message);
+        if (error) {
+            console.error("Error logging in:", error.message);
+            const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+            setAuthError({ code: errorCode, description: error.message });
+        }
     };
 
     const handleGoogleLoginClick = async () => {
@@ -83,22 +106,20 @@ export default function LoginPage() {
     };
 
     const handleFacebookLogin = async () => {
+        setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        // Let Supabase Auth be the source of truth: normal OAuth sign-in / sign-up flow.
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "facebook",
+            options: { redirectTo },
+        });
 
-        const { error } = isAnonymous
-            ? await supabase.auth.linkIdentity({
-                provider: "facebook",
-                options: { redirectTo },
-            })
-            : await supabase.auth.signInWithOAuth({
-                provider: "facebook",
-                options: { redirectTo },
-            });
-
-        if (error) console.error("Error logging in:", error.message);
+        if (error) {
+            console.error("Error logging in:", error.message);
+            const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+            setAuthError({ code: errorCode, description: error.message });
+        }
     };
 
     const handleFacebookLoginClick = async () => {
@@ -176,6 +197,16 @@ export default function LoginPage() {
             <div className="w-full lg:w-1/2 flex flex-col items-center justify-center lg:justify-start lg:pt-22 p-6 md:p-12 relative bg-white">
 
                 <div className="w-full max-w-md space-y-8 mt-10 lg:mt-0">
+                    {(authError?.code || authError?.description) && (
+                        <div className="w-[90%] mx-auto rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                            <div className="font-bold">Login error</div>
+                            <div className="mt-1">
+                                {authError.code === "identity_already_exists"
+                                    ? "This login method is already linked to another account. We’ll sign you in to that existing account instead."
+                                    : (authError.description ?? "Authentication failed. Please try again.")}
+                            </div>
+                        </div>
+                    )}
                     <div className="text-center">
                         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">Continue to Copilot Inside</h1>
                         <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
@@ -283,7 +314,7 @@ export default function LoginPage() {
                                 {showMoreOptions && (
                                     <button
                                         onClick={handleFacebookLoginClick}
-                                        className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
+                                        className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
                                     >
                                         <FaFacebook className="w-6 h-6 text-[#1877F2]" />
                                         <span>Log in with Facebook</span>

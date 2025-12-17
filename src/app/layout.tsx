@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AnimationProvider } from "@/lib/AnimationContext";
 import { CookieConsentProvider } from "@/lib/CookieConsentContext";
+import { Analytics } from "@vercel/analytics/next"
 
 import CookieBanner from "@/components/CookieBanner";
 import AffiliationBootstrap from "@/components/AffiliationBootstrap";

@@ -1,5 +1,34 @@
 import { createClient } from '@/lib/supabase/client';
 
+const AFFILIATION_USER_ID_KEY = "affiliation_user_id";
+
+function generateUuidV4Fallback() {
+    // RFC4122-ish v4 fallback (browser-safe, no dependencies)
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+export function getOrCreateAffiliationUserId() {
+    if (typeof window === "undefined") return null;
+
+    try {
+        let id = window.localStorage.getItem(AFFILIATION_USER_ID_KEY);
+        if (!id) {
+            id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : generateUuidV4Fallback();
+            window.localStorage.setItem(AFFILIATION_USER_ID_KEY, id);
+        }
+        return id;
+    } catch (err) {
+        console.error("[affiliation] failed to access localStorage for browser id:", err);
+        return null;
+    }
+}
+
 export const trackUserClick = async (tag: string) => {
     try {
         const supabase = createClient();
@@ -7,10 +36,13 @@ export const trackUserClick = async (tag: string) => {
         // 1. Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-        if (userError || !user) {
+        if (userError) {
             console.error("Error getting user for tracking:", userError);
             return;
         }
+
+        // Not logged in (no session) – nothing to write to auth.users metadata.
+        if (!user) return;
 
         // 2. Get existing metadata
         const metadata = user.user_metadata || {};
@@ -39,34 +71,9 @@ export const trackUserClick = async (tag: string) => {
 
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
-async function ensureUserId() {
-    const supabase = createClient();
-
-    const {
-        data: { session },
-        error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-        console.error("[affiliation] getSession failed:", sessionError);
-    }
-
-    let user = session?.user ?? null;
-
-    if (!user) {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-            console.error("[affiliation] signInAnonymously failed:", error);
-            return { supabase, userId: null as string | null };
-        }
-        user = data.user ?? null;
-    }
-
-    return { supabase, userId: user?.id ?? null };
-}
-
 async function upsertAffiliation(fields: Record<string, unknown>) {
-    const { supabase, userId } = await ensureUserId();
+    const supabase = createClient();
+    const userId = getOrCreateAffiliationUserId();
     if (!userId) return;
 
     const payload = {
@@ -80,6 +87,27 @@ async function upsertAffiliation(fields: Record<string, unknown>) {
         .upsert(payload, { onConflict: "user_id" });
 
     if (error) {
+        // If the DB enforces NOT NULL on `url`, the initial insert may fail.
+        // Retry once including the current URL (safe: this path only happens on insert).
+        const currentUrl = typeof window !== "undefined" ? window.location.href : null;
+        const isUrlNotNullViolation =
+            error.code === "23502" &&
+            typeof error.message === "string" &&
+            error.message.toLowerCase().includes("url");
+
+        if (isUrlNotNullViolation && currentUrl) {
+            const { error: retryError } = await supabase
+                .from("affiliation")
+                // If a row was created concurrently, do NOT update it.
+                .upsert({ ...payload, url: currentUrl }, { onConflict: "user_id", ignoreDuplicates: true });
+
+            if (retryError) {
+                console.error("[affiliation] upsert failed (retry with url):", retryError);
+            }
+
+            return;
+        }
+
         console.error("[affiliation] upsert failed:", error);
     }
 }
@@ -111,5 +139,11 @@ export async function trackPaymentMethodClick(method: string) {
     await upsertAffiliation({
         payment_method: method,
         payment_at: now,
+    });
+}
+
+export async function trackWaitlistChoice(choice: boolean) {
+    await upsertAffiliation({
+        waitlist: choice,
     });
 }

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { trackUserClick } from '@/utils/userActions';
+import { trackUserClick, trackWaitlistChoice } from '@/utils/userActions';
 
 interface MaintenancePopupProps {
     isOpen: boolean;
@@ -33,10 +33,13 @@ export default function MaintenancePopup({ isOpen, onClose, onJoinWaitlist }: Ma
                     >
                         {/* Close Button */}
                         <button
+                            type="button"
                             onClick={onClose}
+                            aria-label="Close"
+                            title="Close"
                             className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                         >
-                            <X size={20} />
+                            <X size={20} aria-hidden="true" focusable="false" />
                         </button>
 
                         <div className="text-center space-y-6">
@@ -54,6 +57,7 @@ export default function MaintenancePopup({ isOpen, onClose, onJoinWaitlist }: Ma
                                 <button
                                     onClick={() => {
                                         trackUserClick('waitlist');
+                                        void trackWaitlistChoice(true);
                                         onJoinWaitlist();
                                     }}
                                     className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-full transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-violet-200 cursor-pointer"
@@ -62,7 +66,10 @@ export default function MaintenancePopup({ isOpen, onClose, onJoinWaitlist }: Ma
                                 </button>
 
                                 <button
-                                    onClick={onClose}
+                                    onClick={() => {
+                                        void trackWaitlistChoice(false);
+                                        onClose();
+                                    }}
                                     className="w-full bg-transparent hover:bg-gray-50 text-gray-500 font-semibold py-3 rounded-full transition-all active:scale-[0.98] text-sm cursor-pointer"
                                 >
                                     No thanks

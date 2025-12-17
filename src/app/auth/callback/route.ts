@@ -19,6 +19,16 @@ export async function GET(request: Request) {
             const baseUrl = getBaseUrl()
             return NextResponse.redirect(`${baseUrl}${next}`)
         }
+
+        // Surface the underlying auth error (e.g. identity_already_exists) to the login page.
+        const loginUrl = new URL(`${origin}/login`)
+        loginUrl.searchParams.set('error', 'AuthCodeError')
+        loginUrl.searchParams.set('error_description', error.message)
+        // "code" isn't always present on the AuthError type, so we access it safely.
+        const errorCode = (error as unknown as { code?: string }).code
+        if (errorCode) loginUrl.searchParams.set('error_code', errorCode)
+        loginUrl.searchParams.set('next', next)
+        return NextResponse.redirect(loginUrl)
     }
 
     if (token_hash && type) {
@@ -31,6 +41,14 @@ export async function GET(request: Request) {
             // Redirect to dashboard after successful verification
             return NextResponse.redirect(`${origin}${next}`)
         }
+
+        const loginUrl = new URL(`${origin}/login`)
+        loginUrl.searchParams.set('error', 'AuthCodeError')
+        loginUrl.searchParams.set('error_description', error.message)
+        const errorCode = (error as unknown as { code?: string }).code
+        if (errorCode) loginUrl.searchParams.set('error_code', errorCode)
+        loginUrl.searchParams.set('next', next)
+        return NextResponse.redirect(loginUrl)
     }
 
     // return the user to an error page with instructions
