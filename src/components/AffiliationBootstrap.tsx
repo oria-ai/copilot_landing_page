@@ -1,63 +1,67 @@
 "use client";
 
 import { useEffect } from "react";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { createClient, createTrackingClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 function isAnonymousUser(user: User | null | undefined): boolean {
   return Boolean((user as any)?.is_anonymous);
 }
 
-async function tryMigrateLegacySessionCookie(tracking: SupabaseClient) {
-  if (typeof window === "undefined") return;
+const SESSION_COOKIE_KEY = "session_cookie";
+const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  // Older versions stored a custom JSON (or raw uuid) under `session_cookie`.
-  // The tracking client expects Supabase's native session shape. Best-effort migrate.
-  const raw = window.localStorage.getItem("session_cookie");
-  if (!raw) return;
+function newUuid(): string {
+  const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
 
-  // If it looks like a raw UUID string, clear it so Supabase can manage the key.
-  if (!raw.trim().startsWith("{")) {
-    try {
-      window.localStorage.removeItem("session_cookie");
-    } catch {
-      // ignore
-    }
-    return;
+  // Modern browsers
+  if (c?.randomUUID) {
+    return c.randomUUID();
   }
 
+  // Fallback (RFC4122-ish v4)
+  const bytes = new Uint8Array(16);
+  if (c?.getRandomValues) {
+    c.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex
+    .slice(8, 10)
+    .join("")}-${hex.slice(10, 16).join("")}`;
+}
+
+function getOrCreateSessionCookieId(): string | null {
+  if (typeof window === "undefined") return null;
+
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return;
-
-    const obj = parsed as Record<string, unknown>;
-
-    // Legacy custom format: { user_id, access_token, refresh_token }
-    const legacyUserId = typeof obj.user_id === "string" ? obj.user_id : null;
-    const accessToken = typeof obj.access_token === "string" ? obj.access_token : null;
-    const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : null;
-
-    if (legacyUserId && accessToken && refreshToken) {
-      const { error } = await tracking.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-      if (error) {
-        console.error("[affiliation] legacy session_cookie migration failed:", error);
-        try {
-          window.localStorage.removeItem("session_cookie");
-        } catch {
-          // ignore
-        }
-      }
+    const existing = window.localStorage.getItem(SESSION_COOKIE_KEY);
+    if (existing && UUID_RE.test(existing.trim())) return existing.trim();
+    if (existing && existing.trim()) {
+      // If a previous version stored non-UUID data under this key (e.g., JSON session), reset it.
+      window.localStorage.removeItem(SESSION_COOKIE_KEY);
     }
+
+    // Migrate legacy key -> new key (best-effort).
+    const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
+    if (legacy && UUID_RE.test(legacy.trim())) {
+      window.localStorage.setItem(SESSION_COOKIE_KEY, legacy.trim());
+      window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
+      return legacy.trim();
+    }
+
+    const id = newUuid();
+    window.localStorage.setItem(SESSION_COOKIE_KEY, id);
+    return id;
   } catch {
-    // If JSON is malformed, clear it so Supabase can recreate it.
-    try {
-      window.localStorage.removeItem("session_cookie");
-    } catch {
-      // ignore
-    }
+    return null;
   }
 }
 
@@ -151,18 +155,18 @@ function buildAuthSnapshot(user: User): Omit<AffiliationUpsert, "user_id" | "upd
 
 export default function AffiliationBootstrap() {
   useEffect(() => {
-    const auth = createClient();
-    const tracking = createTrackingClient();
+    const supabase = createClient();
     let cancelled = false;
     const firstEntryUrl = typeof window !== "undefined" ? window.location.href : null;
-    let browserUserId: string | null = null;
+    const browserId = getOrCreateSessionCookieId();
+    if (!browserId) return;
 
     const writeInitialUrlIfMissing = async (userId: string) => {
       // We want to persist only the first URL the user entered the app with.
       // Never overwrite an existing value.
       if (!firstEntryUrl) return;
 
-      const { error: nullUrlError } = await tracking
+      const { error: nullUrlError } = await supabase
         .from("affiliation")
         .update({ url: firstEntryUrl })
         .eq("user_id", userId)
@@ -172,7 +176,7 @@ export default function AffiliationBootstrap() {
         console.error("[affiliation] set initial url failed (url is null):", nullUrlError);
       }
 
-      const { error: emptyUrlError } = await tracking
+      const { error: emptyUrlError } = await supabase
         .from("affiliation")
         .update({ url: firstEntryUrl })
         .eq("user_id", userId)
@@ -186,7 +190,7 @@ export default function AffiliationBootstrap() {
     const ensureRowExists = async (userId: string) => {
       const now = new Date().toISOString();
 
-      const { error } = await tracking
+      const { error } = await supabase
         .from("affiliation")
         .upsert({ user_id: userId, updated_at: now }, { onConflict: "user_id" });
 
@@ -198,7 +202,7 @@ export default function AffiliationBootstrap() {
         error.code === "23502" && typeof error.message === "string" && error.message.toLowerCase().includes("url");
 
       if (isUrlNotNullViolation && firstEntryUrl) {
-        const { error: retryError } = await tracking
+        const { error: retryError } = await supabase
           .from("affiliation")
           // If a row was created concurrently, do NOT update it (preserve existing url).
           .upsert(
@@ -217,53 +221,9 @@ export default function AffiliationBootstrap() {
       console.error("[affiliation] ensure row exists failed:", error);
     };
 
-    const ensureBrowserSession = async () => {
-      const { data: sessionData, error: sessionError } = await tracking.auth.getSession();
-      if (sessionError) {
-        console.error("[affiliation] tracking getSession failed:", sessionError);
-      }
-
-      let user = sessionData.session?.user ?? null;
-
-      if (!user) {
-        await tryMigrateLegacySessionCookie(tracking);
-        const { data: after } = await tracking.auth.getSession();
-        user = after.session?.user ?? null;
-      }
-
-      // Tracking session must remain anonymous (browser-level identifier).
-      if (user && !isAnonymousUser(user)) {
-        await tracking.auth.signOut();
-        user = null;
-      }
-
-      if (!user) {
-        const { data, error } = await tracking.auth.signInAnonymously();
-        if (error) {
-          console.error("[affiliation] tracking signInAnonymously failed:", error);
-          return null;
-        }
-        user = data.user ?? null;
-      }
-
-      browserUserId = user?.id ?? null;
-      return browserUserId;
-    };
-
-    const ensureBrowserRow = async () => {
-      const userId = await ensureBrowserSession();
-      if (!userId) return null;
-      await ensureRowExists(userId);
-      await writeInitialUrlIfMissing(userId);
-      return userId;
-    };
-
     const upsertAuthSnapshotToBrowserRow = async (authUser: User) => {
       // Only store auth UUID & auth snapshot for real (non-anonymous) accounts.
       if (isAnonymousUser(authUser)) return;
-
-      const browserId = await ensureBrowserRow();
-      if (!browserId) return;
 
       const payload: AffiliationUpsert = {
         user_id: browserId,
@@ -272,22 +232,40 @@ export default function AffiliationBootstrap() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await tracking.from("affiliation").upsert(payload, { onConflict: "user_id" });
+      const { error } = await supabase.from("affiliation").upsert(payload, { onConflict: "user_id" });
       if (error) {
         console.error("[affiliation] upsert auth snapshot failed:", error);
       }
+    };
+
+    const ensureBrowserRow = async () => {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error("[affiliation] getSession failed:", sessionError);
+      }
+
+      if (!sessionData.session?.user) {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          console.error("[affiliation] signInAnonymously failed:", error);
+        }
+      }
+
+      if (cancelled) return;
+      await ensureRowExists(browserId);
+      await writeInitialUrlIfMissing(browserId);
     };
 
     // Ensure the browser-level tracking row exists on every visit.
     void ensureBrowserRow();
 
     // If the user is already logged in, attach auth.uuid + auth snapshot to the browser row.
-    void auth.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       if (u) void upsertAuthSnapshotToBrowserRow(u);
     });
 
-    const { data: listener } = auth.auth.onAuthStateChange((event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
 
       // Sync only on meaningful changes (avoid TOKEN_REFRESHED spam).

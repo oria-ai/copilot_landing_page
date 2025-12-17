@@ -6,7 +6,7 @@ import { FaApple, FaFacebook } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getBaseUrl } from '@/lib/url';
-import { createClient, createTrackingClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
 const OAUTH_INTENT_PROVIDER_KEY = "affiliation_oauth_intent_provider";
@@ -62,13 +62,50 @@ export default function LoginPage() {
 
     const rememberPreAuthUserIdIfAnonymous = async () => {
         try {
-            // Ensure the browser-level tracking session exists before redirecting to OAuth/OTP flows.
-            // This session is stored under the `session_cookie` localStorage key by the tracking client.
-            const tracking = createTrackingClient();
-            const { data: { session } } = await tracking.auth.getSession();
-            if (!session?.user) {
-                await tracking.auth.signInAnonymously();
+            // Ensure the browser-level identifier exists before redirecting to OAuth/OTP flows.
+            // This id is stored as a UUID string in localStorage under `session_cookie`.
+            const key = "session_cookie";
+            const legacyKey = "affiliation_pre_auth_user_id";
+            const uuidRe =
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+            const existing = window.localStorage.getItem(key);
+            if (existing && uuidRe.test(existing.trim())) return;
+            if (existing && existing.trim()) {
+                window.localStorage.removeItem(key);
             }
+
+            const legacy = window.localStorage.getItem(legacyKey);
+            if (legacy && uuidRe.test(legacy.trim())) {
+                window.localStorage.setItem(key, legacy.trim());
+                window.localStorage.removeItem(legacyKey);
+                return;
+            }
+
+            const id = (() => {
+                const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+
+                if (c?.randomUUID) {
+                    return c.randomUUID();
+                }
+
+                const bytes = new Uint8Array(16);
+                if (c?.getRandomValues) {
+                    c.getRandomValues(bytes);
+                } else {
+                    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+                }
+
+                bytes[6] = (bytes[6] & 0x0f) | 0x40;
+                bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+                const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0"));
+                return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex
+                    .slice(8, 10)
+                    .join("")}-${hex.slice(10, 16).join("")}`;
+            })();
+
+            window.localStorage.setItem(key, id);
         } catch {
             // best-effort only
         }
@@ -108,7 +145,8 @@ export default function LoginPage() {
 
         if (canAutoFallback) {
             window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
-            setAuthError(null);
+            // Avoid synchronous setState inside effect (lint rule).
+            void Promise.resolve().then(() => setAuthError(null));
 
             const redirectTo = `${BASE_URL}/auth/callback`;
             void supabase.auth.signInWithOAuth({
@@ -119,7 +157,8 @@ export default function LoginPage() {
         }
 
         if (errorCode || errorDescription) {
-            setAuthError({ code: errorCode, description: errorDescription });
+            // Avoid synchronous setState inside effect (lint rule).
+            void Promise.resolve().then(() => setAuthError({ code: errorCode, description: errorDescription }));
         }
     }, [BASE_URL, supabase]);
 
@@ -133,7 +172,7 @@ export default function LoginPage() {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        const isAnonymous = (user as unknown as { is_anonymous?: boolean } | null)?.is_anonymous === true;
         if (isAnonymous) {
             await rememberPreAuthUserIdIfAnonymous();
         }
@@ -184,7 +223,7 @@ export default function LoginPage() {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        const isAnonymous = (user as unknown as { is_anonymous?: boolean } | null)?.is_anonymous === true;
         if (isAnonymous) {
             await rememberPreAuthUserIdIfAnonymous();
         }
@@ -476,7 +515,7 @@ export default function LoginPage() {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Login Failed</h3>
                             <p className="text-gray-500 text-sm">
-                                Sorry, we couldn't connect to Apple. Please try another login method.
+                                Sorry, we could not connect to Apple. Please try another login method.
                             </p>
                         </div>
 

@@ -1,60 +1,59 @@
-import { createClient, createTrackingClient } from "@/lib/supabase/client";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
-function isAnonymousUser(user: User | null | undefined): boolean {
-    return Boolean((user as any)?.is_anonymous);
-}
+const SESSION_COOKIE_KEY = "session_cookie";
+const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-async function tryMigrateLegacySessionCookie(tracking: SupabaseClient) {
-    if (typeof window === "undefined") return;
+function newUuid(): string {
+    const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
 
-    // Older versions stored a custom JSON (or raw uuid) under `session_cookie`.
-    // The tracking client expects Supabase's native session shape. Best-effort migrate.
-    const raw = window.localStorage.getItem("session_cookie");
-    if (!raw) return;
-
-    // If it looks like a raw UUID string, clear it so Supabase can manage the key.
-    if (!raw.trim().startsWith("{")) {
-        try {
-            window.localStorage.removeItem("session_cookie");
-        } catch {
-            // ignore
-        }
-        return;
+    // Modern browsers
+    if (c?.randomUUID) {
+        return c.randomUUID();
     }
 
+    // Fallback (RFC4122-ish v4)
+    const bytes = new Uint8Array(16);
+    if (c?.getRandomValues) {
+        c.getRandomValues(bytes);
+    } else {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0"));
+    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex
+        .slice(8, 10)
+        .join("")}-${hex.slice(10, 16).join("")}`;
+}
+
+function getOrCreateSessionCookieId(): string | null {
+    if (typeof window === "undefined") return null;
+
     try {
-        const parsed = JSON.parse(raw) as unknown;
-        if (!parsed || typeof parsed !== "object") return;
-
-        const obj = parsed as Record<string, unknown>;
-
-        // Legacy custom format: { user_id, access_token, refresh_token }
-        const legacyUserId = typeof obj.user_id === "string" ? obj.user_id : null;
-        const accessToken = typeof obj.access_token === "string" ? obj.access_token : null;
-        const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : null;
-
-        if (legacyUserId && accessToken && refreshToken) {
-            const { error } = await tracking.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-            });
-            if (error) {
-                console.error("[affiliation] legacy session_cookie migration failed:", error);
-                try {
-                    window.localStorage.removeItem("session_cookie");
-                } catch {
-                    // ignore
-                }
-            }
+        const existing = window.localStorage.getItem(SESSION_COOKIE_KEY);
+        if (existing && UUID_RE.test(existing.trim())) return existing.trim();
+        if (existing && existing.trim()) {
+            // If a previous version stored non-UUID data under this key (e.g., JSON session), reset it.
+            window.localStorage.removeItem(SESSION_COOKIE_KEY);
         }
+
+        // Migrate legacy key -> new key (best-effort).
+        const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
+        if (legacy && UUID_RE.test(legacy.trim())) {
+            window.localStorage.setItem(SESSION_COOKIE_KEY, legacy.trim());
+            window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
+            return legacy.trim();
+        }
+
+        const id = newUuid();
+        window.localStorage.setItem(SESSION_COOKIE_KEY, id);
+        return id;
     } catch {
-        // If JSON is malformed, clear it so Supabase can recreate it.
-        try {
-            window.localStorage.removeItem("session_cookie");
-        } catch {
-            // ignore
-        }
+        return null;
     }
 }
 
@@ -100,8 +99,8 @@ export const trackUserClick = async (tag: string) => {
 
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
-async function ensureUserId() {
-    const supabase = createTrackingClient();
+async function ensureAuthSession() {
+    const supabase = createClient();
 
     const {
         data: { session },
@@ -112,39 +111,24 @@ async function ensureUserId() {
         console.error("[affiliation] getSession failed:", sessionError);
     }
 
-    let user = session?.user ?? null;
-
-    // Best-effort migration for older `session_cookie` formats.
-    if (!user) {
-        await tryMigrateLegacySessionCookie(supabase);
-        const { data: after } = await supabase.auth.getSession();
-        user = after.session?.user ?? null;
-    }
-
-    // Tracking client must remain anonymous (browser-level identifier).
-    if (user && !isAnonymousUser(user)) {
-        await supabase.auth.signOut();
-        user = null;
-    }
-
-    if (!user) {
-        const { data, error } = await supabase.auth.signInAnonymously();
+    if (!session?.user) {
+        const { error } = await supabase.auth.signInAnonymously();
         if (error) {
             console.error("[affiliation] signInAnonymously failed:", error);
-            return { supabase, userId: null as string | null };
         }
-        user = data.user ?? null;
     }
 
-    return { supabase, userId: user?.id ?? null };
+    return { supabase };
 }
 
 async function upsertAffiliation(fields: Record<string, unknown>) {
-    const { supabase, userId } = await ensureUserId();
-    if (!userId) return;
+    const sessionCookieId = getOrCreateSessionCookieId();
+    if (!sessionCookieId) return;
+
+    const { supabase } = await ensureAuthSession();
 
     const payload = {
-        user_id: userId,
+        user_id: sessionCookieId,
         ...fields,
         updated_at: new Date().toISOString(),
     };
