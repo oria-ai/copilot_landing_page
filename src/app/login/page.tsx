@@ -9,6 +9,8 @@ import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
+const SESSION_COOKIE_KEY = "session_cookie";
+const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
 const OAUTH_INTENT_PROVIDER_KEY = "affiliation_oauth_intent_provider";
 const OAUTH_FALLBACK_USED_KEY = "affiliation_oauth_fallback_used";
 
@@ -62,50 +64,40 @@ export default function LoginPage() {
 
     const rememberPreAuthUserIdIfAnonymous = async () => {
         try {
-            // Ensure the browser-level identifier exists before redirecting to OAuth/OTP flows.
-            // This id is stored as a UUID string in localStorage under `session_cookie`.
-            const key = "session_cookie";
-            const legacyKey = "affiliation_pre_auth_user_id";
-            const uuidRe =
-                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) return;
+            const isAnonymous = Boolean((user as any)?.is_anonymous);
+            if (isAnonymous && user?.id) {
+                const existing =
+                    window.localStorage.getItem(SESSION_COOKIE_KEY) ??
+                    window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
 
-            const existing = window.localStorage.getItem(key);
-            if (existing && uuidRe.test(existing.trim())) return;
-            if (existing && existing.trim()) {
-                window.localStorage.removeItem(key);
-            }
-
-            const legacy = window.localStorage.getItem(legacyKey);
-            if (legacy && uuidRe.test(legacy.trim())) {
-                window.localStorage.setItem(key, legacy.trim());
-                window.localStorage.removeItem(legacyKey);
-                return;
-            }
-
-            const id = (() => {
-                const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
-
-                if (c?.randomUUID) {
-                    return c.randomUUID();
+                // Migrate legacy key -> new key (best-effort).
+                if (!window.localStorage.getItem(SESSION_COOKIE_KEY)) {
+                    const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
+                    if (legacy) {
+                        window.localStorage.setItem(SESSION_COOKIE_KEY, legacy);
+                        window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
+                    }
                 }
 
-                const bytes = new Uint8Array(16);
-                if (c?.getRandomValues) {
-                    c.getRandomValues(bytes);
-                } else {
-                    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+                // If not set, persist the anonymous user id (or tokens if available).
+                if (!existing) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user?.id && Boolean((session.user as any)?.is_anonymous)) {
+                        window.localStorage.setItem(
+                            SESSION_COOKIE_KEY,
+                            JSON.stringify({
+                                user_id: session.user.id,
+                                access_token: session.access_token,
+                                refresh_token: session.refresh_token,
+                            }),
+                        );
+                    } else {
+                        window.localStorage.setItem(SESSION_COOKIE_KEY, user.id);
+                    }
                 }
-
-                bytes[6] = (bytes[6] & 0x0f) | 0x40;
-                bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-                const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0"));
-                return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex
-                    .slice(8, 10)
-                    .join("")}-${hex.slice(10, 16).join("")}`;
-            })();
-
-            window.localStorage.setItem(key, id);
+            }
         } catch {
             // best-effort only
         }
@@ -145,8 +137,7 @@ export default function LoginPage() {
 
         if (canAutoFallback) {
             window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
-            // Avoid synchronous setState inside effect (lint rule).
-            void Promise.resolve().then(() => setAuthError(null));
+            setAuthError(null);
 
             const redirectTo = `${BASE_URL}/auth/callback`;
             void supabase.auth.signInWithOAuth({
@@ -157,8 +148,7 @@ export default function LoginPage() {
         }
 
         if (errorCode || errorDescription) {
-            // Avoid synchronous setState inside effect (lint rule).
-            void Promise.resolve().then(() => setAuthError({ code: errorCode, description: errorDescription }));
+            setAuthError({ code: errorCode, description: errorDescription });
         }
     }, [BASE_URL, supabase]);
 
@@ -172,7 +162,7 @@ export default function LoginPage() {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = (user as unknown as { is_anonymous?: boolean } | null)?.is_anonymous === true;
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
         if (isAnonymous) {
             await rememberPreAuthUserIdIfAnonymous();
         }
@@ -223,7 +213,7 @@ export default function LoginPage() {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = (user as unknown as { is_anonymous?: boolean } | null)?.is_anonymous === true;
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
         if (isAnonymous) {
             await rememberPreAuthUserIdIfAnonymous();
         }
@@ -515,7 +505,7 @@ export default function LoginPage() {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Login Failed</h3>
                             <p className="text-gray-500 text-sm">
-                                Sorry, we could not connect to Apple. Please try another login method.
+                                Sorry, we couldn't connect to Apple. Please try another login method.
                             </p>
                         </div>
 
@@ -562,3 +552,274 @@ export default function LoginPage() {
         </main>
     );
 }
+
+                                            placeholder="123456"
+
+                                            value={otp}
+
+                                            onChange={(e) => setOtp(e.target.value)}
+
+                                            className="w-full text-center tracking-[1em] font-mono text-xl py-4 rounded-full border border-gray-300 focus:border-gray-900 focus:ring-0 outline-none transition-all"
+
+                                            autoFocus
+
+                                            maxLength={6}
+
+                                        />
+
+                                        <button
+
+                                            onClick={handleVerifyOtp}
+
+                                            disabled={isLoading}
+
+                                            className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold py-4 px-6 rounded-full hover:bg-gray-800 transition-colors text-lg shadow-sm disabled:opacity-50 cursor-pointer"
+
+                                        >
+
+                                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify & Login'}
+
+                                            {!isLoading && <ArrowRight className="w-5 h-5" />}
+
+                                        </button>
+
+                                        <button onClick={() => setIsVerifying(false)} className="w-full text-sm text-gray-500 hover:text-gray-900 cursor-pointer">
+
+                                            Wrong email?
+
+                                        </button>
+
+                                    </div>
+
+                                )}
+
+                            </div>
+
+                        )}
+
+
+
+                        {/* Facebook Button */}
+
+                        {/* Facebook Button */}
+
+                        {/* More Options / Facebook */}
+
+                        {!isEmailMode && (
+
+                            <div className="pt-2 flex flex-col gap-3">
+
+                                {showMoreOptions && (
+
+                                    <button
+
+                                        onClick={handleFacebookLoginClick}
+                                        className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
+                                    >
+
+                                        <FaFacebook className="w-6 h-6 text-[#1877F2]" />
+
+                                        <span>Log in with Facebook</span>
+
+                                    </button>
+
+                                )}
+
+
+
+                                <button
+
+                                    onClick={() => setShowMoreOptions(!showMoreOptions)}
+
+                                    className="w-full text-sm text-gray-500 hover:text-gray-900 flex items-center justify-center gap-1 mx-auto font-medium cursor-pointer"
+
+                                >
+
+                                    {showMoreOptions ? (
+
+                                        <>Show less <span className="text-[10px] rotate-180 transition-transform">▼</span></>
+
+                                    ) : (
+
+                                        <>More login options <span className="text-[10px] transition-transform">▼</span></>
+
+                                    )}
+
+                                </button>
+
+                            </div>
+
+                        )}
+
+                    </div>
+
+                </div>
+
+
+
+                {/* Footer Links (From Trial Page) */}
+
+                <div className="lg:absolute bottom-8 w-full text-center px-4 mt-auto lg:mt-0 pt-8 lg:pt-0">
+
+                    <div className="mx-auto w-[90%] border-t border-gray-100 mb-6"></div>
+
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-gray-400">
+
+                        <Link href="/privacy-policy.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors cursor-pointer">Privacy Policy</Link>
+
+                        <span className="hidden sm:inline text-gray-300">|</span>
+
+                        <Link href="/terms-of-use.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors cursor-pointer">Terms of Use</Link>
+
+                        <span className="hidden sm:inline text-gray-300">|</span>
+
+                        <button
+
+                            className="hover:text-gray-900 transition-colors cursor-pointer"
+
+                            onClick={() => window.UserWay?.widgetOpen?.()}
+
+                        >
+
+                            Accessibility
+
+                        </button>
+
+                    </div>
+
+                    <div className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-2">
+
+                        <span>HandsOnAI</span>
+
+                        <span>© 2025 All rights reserved</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            {/* Apple Login Error Modal */}
+
+            {showAppleError && (
+
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative animate-in zoom-in-95 duration-200">
+
+                        <button
+
+                            onClick={() => setShowAppleError(false)}
+
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 cursor-pointer"
+
+                            aria-label="Close"
+                        >
+
+                            <X className="w-5 h-5" />
+
+                        </button>
+
+
+
+                        <div className="text-center mb-6">
+
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+
+                                <FaApple className="w-6 h-6 text-red-600" />
+
+                            </div>
+
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Login Failed</h3>
+
+                            <p className="text-gray-500 text-sm">
+
+                                Sorry, we couldn't connect to Apple. Please try another login method.
+
+                            </p>
+
+                        </div>
+
+
+
+                        <div className="space-y-3">
+
+                            <button
+
+                                onClick={() => {
+                                    setShowAppleError(false);
+                                    void handleGoogleLogin();
+                                }}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
+
+                            >
+
+                                <FcGoogle className="w-5 h-5" />
+
+                                Continue with Google
+
+                            </button>
+
+                            <button
+
+                                onClick={() => { setShowAppleError(false); setIsEmailMode(true); }}
+
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
+
+                            >
+
+                                <Mail className="w-5 h-5" />
+
+                                Continue with Email
+
+                            </button>
+
+                            <button
+
+                                onClick={() => {
+                                    setShowAppleError(false);
+                                    void handleFacebookLogin();
+                                }}
+                                className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
+
+                            >
+
+                                <FaFacebook className="w-5 h-5 text-[#1877F2]" />
+
+                                Continue with Facebook
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
+
+
+
+            {/* Fallback CSS to hide widget trigger if JS fails/lags */}
+
+            <style dangerouslySetInnerHTML={{
+
+                __html: `
+
+        .uway_widget_trigger { display: none !important; }
+
+        iframe[title="Accessibility Menu"] { display: none !important; } 
+
+        #userway-accessibility-widget { display: none !important; }
+
+      `}} />
+
+        </main>
+
+    );
+
+}
+
+

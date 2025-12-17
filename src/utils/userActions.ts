@@ -1,60 +1,72 @@
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from '@/lib/supabase/client';
+import type { Session, User } from "@supabase/supabase-js";
 
 const SESSION_COOKIE_KEY = "session_cookie";
 const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
-const UUID_RE =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function newUuid(): string {
-    const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+type SessionCookieValue = {
+    user_id: string;
+    access_token?: string;
+    refresh_token?: string;
+};
 
-    // Modern browsers
-    if (c?.randomUUID) {
-        return c.randomUUID();
-    }
-
-    // Fallback (RFC4122-ish v4)
-    const bytes = new Uint8Array(16);
-    if (c?.getRandomValues) {
-        c.getRandomValues(bytes);
-    } else {
-        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-    }
-
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-    const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0"));
-    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex
-        .slice(8, 10)
-        .join("")}-${hex.slice(10, 16).join("")}`;
+function isAnonymousUser(user: User | null | undefined): boolean {
+    return Boolean((user as any)?.is_anonymous);
 }
 
-function getOrCreateSessionCookieId(): string | null {
+function readSessionCookieRaw(): string | null {
     if (typeof window === "undefined") return null;
-
     try {
-        const existing = window.localStorage.getItem(SESSION_COOKIE_KEY);
-        if (existing && UUID_RE.test(existing.trim())) return existing.trim();
-        if (existing && existing.trim()) {
-            // If a previous version stored non-UUID data under this key (e.g., JSON session), reset it.
-            window.localStorage.removeItem(SESSION_COOKIE_KEY);
-        }
-
-        // Migrate legacy key -> new key (best-effort).
-        const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
-        if (legacy && UUID_RE.test(legacy.trim())) {
-            window.localStorage.setItem(SESSION_COOKIE_KEY, legacy.trim());
-            window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
-            return legacy.trim();
-        }
-
-        const id = newUuid();
-        window.localStorage.setItem(SESSION_COOKIE_KEY, id);
-        return id;
+        return (
+            window.localStorage.getItem(SESSION_COOKIE_KEY) ??
+            window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY)
+        );
     } catch {
         return null;
     }
+}
+
+function parseSessionCookie(raw: string | null): SessionCookieValue | null {
+    if (!raw) return null;
+
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!parsed || typeof parsed !== "object") return null;
+
+        const obj = parsed as Record<string, unknown>;
+        const userId = typeof obj.user_id === "string" ? obj.user_id : null;
+        if (!userId) return null;
+
+        const accessToken = typeof obj.access_token === "string" ? obj.access_token : undefined;
+        const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : undefined;
+
+        return { user_id: userId, access_token: accessToken, refresh_token: refreshToken };
+    } catch {
+        // Legacy format (raw user id string)
+        return { user_id: raw };
+    }
+}
+
+function writeSessionCookie(value: SessionCookieValue) {
+    if (typeof window === "undefined") return;
+    try {
+        const payload =
+            value.access_token && value.refresh_token ? JSON.stringify(value) : value.user_id;
+        window.localStorage.setItem(SESSION_COOKIE_KEY, payload);
+        // Clean up legacy key to avoid confusion.
+        window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
+    } catch {
+        // best-effort only
+    }
+}
+
+function writeAnonSessionCookieFromSession(session: Session) {
+    if (!isAnonymousUser(session.user)) return;
+    writeSessionCookie({
+        user_id: session.user.id,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+    });
 }
 
 export const trackUserClick = async (tag: string) => {
@@ -99,7 +111,7 @@ export const trackUserClick = async (tag: string) => {
 
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
-async function ensureAuthSession() {
+async function ensureUserId() {
     const supabase = createClient();
 
     const {
@@ -111,24 +123,66 @@ async function ensureAuthSession() {
         console.error("[affiliation] getSession failed:", sessionError);
     }
 
-    if (!session?.user) {
-        const { error } = await supabase.auth.signInAnonymously();
-        if (error) {
-            console.error("[affiliation] signInAnonymously failed:", error);
+    let user = session?.user ?? null;
+
+    // Keep a restorable anonymous session (pre-login browser identity) across logouts.
+    if (session && isAnonymousUser(user)) {
+        writeAnonSessionCookieFromSession(session);
+    }
+
+    // Ensure we always have an auth user id to write affiliation to.
+    // Anonymous users are stored in auth.users (is_anonymous=true) and behave like authenticated users for RLS.
+    if (!user) {
+        const stored = parseSessionCookie(readSessionCookieRaw());
+        const canRestore = Boolean(stored?.access_token && stored?.refresh_token);
+
+        if (canRestore) {
+            const { data, error } = await supabase.auth.setSession({
+                access_token: stored!.access_token!,
+                refresh_token: stored!.refresh_token!,
+            });
+
+            const restoredSession = data.session ?? null;
+            const restoredUser = restoredSession?.user ?? null;
+
+            if (error) {
+                console.error("[affiliation] restore anon session failed:", error);
+            } else if (restoredSession && restoredUser && isAnonymousUser(restoredUser)) {
+                user = restoredUser;
+                writeAnonSessionCookieFromSession(restoredSession);
+            } else {
+                try {
+                    window.localStorage.removeItem(SESSION_COOKIE_KEY);
+                } catch {
+                    // ignore
+                }
+            }
+        }
+
+        if (!user) {
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) {
+                console.error("[affiliation] signInAnonymously failed:", error);
+                return { supabase, userId: null as string | null };
+            }
+            user = data.user ?? null;
+            if (data.session) {
+                writeAnonSessionCookieFromSession(data.session);
+            } else if (user && isAnonymousUser(user)) {
+                writeSessionCookie({ user_id: user.id });
+            }
         }
     }
 
-    return { supabase };
+    return { supabase, userId: user?.id ?? null };
 }
 
 async function upsertAffiliation(fields: Record<string, unknown>) {
-    const sessionCookieId = getOrCreateSessionCookieId();
-    if (!sessionCookieId) return;
-
-    const { supabase } = await ensureAuthSession();
+    const { supabase, userId } = await ensureUserId();
+    if (!userId) return;
 
     const payload = {
-        user_id: sessionCookieId,
+        user_id: userId,
         ...fields,
         updated_at: new Date().toISOString(),
     };
