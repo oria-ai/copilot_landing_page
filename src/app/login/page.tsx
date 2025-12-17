@@ -59,20 +59,12 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // If we currently have an anonymous user, link the OAuth identity to it
-        // so the user keeps the same UUID (anon -> signed).
-        const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
-
-        const { error } = isAnonymous
-            ? await supabase.auth.linkIdentity({
-                provider: "google",
-                options: { redirectTo },
-            })
-            : await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo },
-            });
+        // Always use signInWithOAuth - tracking is based on localStorage cookie,
+        // not Supabase user ID. The auth_id in affiliation links the browser to the user.
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo },
+        });
 
         if (error) console.error("Error logging in:", error.message);
     };
@@ -85,18 +77,11 @@ export default function LoginPage() {
     const handleFacebookLogin = async () => {
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        const { data: { user } } = await supabase.auth.getUser();
-        const isAnonymous = Boolean((user as any)?.is_anonymous);
-
-        const { error } = isAnonymous
-            ? await supabase.auth.linkIdentity({
-                provider: "facebook",
-                options: { redirectTo },
-            })
-            : await supabase.auth.signInWithOAuth({
-                provider: "facebook",
-                options: { redirectTo },
-            });
+        // Always use signInWithOAuth
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "facebook",
+            options: { redirectTo },
+        });
 
         if (error) console.error("Error logging in:", error.message);
     };

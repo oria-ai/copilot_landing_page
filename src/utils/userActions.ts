@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { getUserCookie } from '@/lib/userCookie';
 
 export const trackUserClick = async (tag: string) => {
     try {
@@ -39,35 +40,50 @@ export const trackUserClick = async (tag: string) => {
 
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
-async function ensureUserId() {
+/**
+ * Upsert affiliation row using localStorage user_cookie as identifier.
+ * Ensures an anonymous session exists for RLS permissions.
+ * @param fields - Fields to update
+ * @param firstOnlyFields - Fields that should only be set on first write (won't override existing values)
+ */
+async function upsertAffiliation(
+    fields: Record<string, unknown>,
+    firstOnlyFields: string[] = []
+) {
+    const userId = getUserCookie();
+    if (!userId) return;
+
     const supabase = createClient();
 
-    const {
-        data: { session },
-        error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-        console.error("[affiliation] getSession failed:", sessionError);
-    }
-
-    let user = session?.user ?? null;
-
-    if (!user) {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-            console.error("[affiliation] signInAnonymously failed:", error);
-            return { supabase, userId: null as string | null };
+    // Ensure we have a session (even anonymous) for RLS permissions
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        const { error: authError } = await supabase.auth.signInAnonymously();
+        if (authError) {
+            console.error("[affiliation] signInAnonymously failed:", authError.message);
+            return;
         }
-        user = data.user ?? null;
     }
 
-    return { supabase, userId: user?.id ?? null };
-}
+    // For "first-only" fields, check if they already have values
+    if (firstOnlyFields.length > 0) {
+        const { data: existing } = await supabase
+            .from("affiliation")
+            .select(firstOnlyFields.join(","))
+            .eq("user_id", userId)
+            .single();
 
-async function upsertAffiliation(fields: Record<string, unknown>) {
-    const { supabase, userId } = await ensureUserId();
-    if (!userId) return;
+        // Remove fields that already have values
+        const existingRecord = existing as Record<string, unknown> | null;
+        for (const field of firstOnlyFields) {
+            if (existingRecord && existingRecord[field] != null) {
+                delete fields[field];
+            }
+        }
+    }
+
+    // If all fields were filtered out, nothing to update
+    if (Object.keys(fields).length === 0) return;
 
     const payload = {
         user_id: userId,
@@ -84,32 +100,65 @@ async function upsertAffiliation(fields: Record<string, unknown>) {
     }
 }
 
+/**
+ * Track Start Free Trial button click.
+ * Only the first button number is saved (first-only).
+ */
 export async function trackStartFreeTrialClick(buttonNumber: number) {
     const now = new Date().toISOString();
-    await upsertAffiliation({
-        start_free_trial_button: buttonNumber,
-        start_free_trial_at: now,
-    });
+    await upsertAffiliation(
+        {
+            start_free_trial_button: buttonNumber,
+            start_free_trial_at: now,
+        },
+        ["start_free_trial_button"] // First button only
+    );
 }
 
+/**
+ * Track which login method button was clicked.
+ * Only the first method is saved (first-only).
+ */
 export async function trackLoginWith(method: LoginMethod) {
     const now = new Date().toISOString();
-    await upsertAffiliation({
-        log_in_with: method,
-        log_in_at: now,
-    });
+    await upsertAffiliation(
+        {
+            log_in_with: method,
+            log_in_at: now,
+        },
+        ["log_in_with"] // First method only
+    );
 }
 
+/**
+ * Track trial page continue button click.
+ */
 export async function trackTrialClick() {
     await upsertAffiliation({
         trial_at: new Date().toISOString(),
     });
 }
 
+/**
+ * Track payment method selection.
+ * Only the first method is saved (first-only).
+ */
 export async function trackPaymentMethodClick(method: string) {
     const now = new Date().toISOString();
+    await upsertAffiliation(
+        {
+            payment_method: method,
+            payment_at: now,
+        },
+        ["payment_method"] // First payment method only
+    );
+}
+
+/**
+ * Track waitlist signup.
+ */
+export async function trackWaitlistClick() {
     await upsertAffiliation({
-        payment_method: method,
-        payment_at: now,
+        waitlist: true,
     });
 }

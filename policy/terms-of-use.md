@@ -46,3 +46,4 @@ These Terms are governed by the laws of the State of Israel, without regard to c
 Questions about these Terms:  
 shir@handsonai.co
 
+
