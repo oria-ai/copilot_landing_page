@@ -3,14 +3,16 @@
 import { useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { getOrCreateAffiliationUserId } from "@/utils/userActions";
+
+const PRE_AUTH_USER_ID_KEY = "affiliation_pre_auth_user_id";
 
 type AffiliationUpsert = {
   user_id: string;
   url?: string | null;
 
-  // Supabase Auth user id (auth.users.id). A single auth user can map to many browsers.
-  auth_id?: string | null;
+  // When a user signs in to an existing account (identity already linked),
+  // we keep the anon row and link the new signed-in row to it.
+  merged_from_user_id?: string | null;
 
   email?: string | null;
   phone?: string | null;
@@ -72,8 +74,6 @@ function buildAuthSnapshot(user: User): Omit<AffiliationUpsert, "user_id" | "upd
   const isSsoUser = typeof anyUser["is_sso_user"] === "boolean" ? (anyUser["is_sso_user"] as boolean) : null;
 
   return {
-    auth_id: user.id,
-
     email: user.email ?? null,
     phone,
     auth_created_at: user.created_at ?? null,
@@ -97,12 +97,9 @@ export default function AffiliationBootstrap() {
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
-    const browserUserId = getOrCreateAffiliationUserId();
-    if (!browserUserId) return;
-
     const firstEntryUrl = typeof window !== "undefined" ? window.location.href : null;
 
-    const writeInitialUrlIfMissing = async () => {
+    const writeInitialUrlIfMissing = async (userId: string) => {
       // We want to persist only the first URL the user entered the app with.
       // Never overwrite an existing value.
       if (!firstEntryUrl) return;
@@ -110,7 +107,7 @@ export default function AffiliationBootstrap() {
       const { error: nullUrlError } = await supabase
         .from("affiliation")
         .update({ url: firstEntryUrl })
-        .eq("user_id", browserUserId)
+        .eq("user_id", userId)
         .is("url", null);
 
       if (nullUrlError) {
@@ -120,7 +117,7 @@ export default function AffiliationBootstrap() {
       const { error: emptyUrlError } = await supabase
         .from("affiliation")
         .update({ url: firstEntryUrl })
-        .eq("user_id", browserUserId)
+        .eq("user_id", userId)
         .eq("url", "");
 
       if (emptyUrlError) {
@@ -128,12 +125,12 @@ export default function AffiliationBootstrap() {
       }
     };
 
-    const ensureRowExists = async () => {
+    const ensureRowExists = async (userId: string) => {
       const now = new Date().toISOString();
 
       const { error } = await supabase
         .from("affiliation")
-        .upsert({ user_id: browserUserId, updated_at: now }, { onConflict: "user_id" });
+        .upsert({ user_id: userId, updated_at: now }, { onConflict: "user_id" });
 
       if (!error) return;
 
@@ -147,7 +144,7 @@ export default function AffiliationBootstrap() {
           .from("affiliation")
           // If a row was created concurrently, do NOT update it (preserve existing url).
           .upsert(
-            { user_id: browserUserId, url: firstEntryUrl, updated_at: now },
+            { user_id: userId, url: firstEntryUrl, updated_at: now },
             { onConflict: "user_id", ignoreDuplicates: true },
           );
 
@@ -163,24 +160,33 @@ export default function AffiliationBootstrap() {
     };
 
     const upsertAuthSnapshot = async (user: User) => {
-      await ensureRowExists();
+      await ensureRowExists(user.id);
+
+      const preAuthId =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem(PRE_AUTH_USER_ID_KEY)
+          : null;
 
       const payload: AffiliationUpsert = {
-        user_id: browserUserId,
+        user_id: user.id,
         ...buildAuthSnapshot(user),
         updated_at: new Date().toISOString(),
       };
 
+      if (preAuthId && preAuthId !== user.id) {
+        payload.merged_from_user_id = preAuthId;
+      }
+
       const { error } = await supabase.from("affiliation").upsert(payload, { onConflict: "user_id" });
       if (error) {
         console.error("[affiliation] upsert auth snapshot failed:", error);
+      } else if (typeof window !== "undefined" && preAuthId) {
+        // If the user upgraded (same id) or we linked rows successfully, clear the marker.
+        window.sessionStorage.removeItem(PRE_AUTH_USER_ID_KEY);
       }
     };
 
-    const sync = async () => {
-      await ensureRowExists();
-      await writeInitialUrlIfMissing();
-
+    const ensureSessionAndSync = async () => {
       const {
         data: { session },
         error: sessionError,
@@ -190,24 +196,43 @@ export default function AffiliationBootstrap() {
         console.error("[affiliation] getSession failed:", sessionError);
       }
 
-      const user = session?.user ?? null;
+      let user = session?.user ?? null;
+
+      if (!user) {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          console.error("[affiliation] signInAnonymously failed:", error);
+          return;
+        }
+        user = data.user ?? null;
+      }
+
       if (cancelled || !user) return;
 
       await upsertAuthSnapshot(user);
+      await writeInitialUrlIfMissing(user.id);
     };
 
-    void sync();
+    void ensureSessionAndSync();
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
 
       const user = session?.user ?? null;
 
+      // If the user signs out, immediately create a fresh anonymous session
+      // so we keep a stable auth.uid() for continued tracking.
+      if (event === "SIGNED_OUT") {
+        void ensureSessionAndSync();
+        return;
+      }
+
       if (!user) return;
 
       // Sync only on meaningful changes (avoid TOKEN_REFRESHED spam).
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "USER_UPDATED") {
         void upsertAuthSnapshot(user);
+        void writeInitialUrlIfMissing(user.id);
       }
     });
 

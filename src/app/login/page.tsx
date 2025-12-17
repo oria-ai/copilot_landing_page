@@ -9,6 +9,10 @@ import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
+const PRE_AUTH_USER_ID_KEY = "affiliation_pre_auth_user_id";
+const OAUTH_INTENT_PROVIDER_KEY = "affiliation_oauth_intent_provider";
+const OAUTH_FALLBACK_USED_KEY = "affiliation_oauth_fallback_used";
+
 declare global {
     interface Window {
         UserWay?: {
@@ -57,6 +61,19 @@ export default function LoginPage() {
         };
     }, []);
 
+    const rememberPreAuthUserIdIfAnonymous = async () => {
+        try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) return;
+            const isAnonymous = Boolean((user as any)?.is_anonymous);
+            if (isAnonymous && user?.id) {
+                window.sessionStorage.setItem(PRE_AUTH_USER_ID_KEY, user.id);
+            }
+        } catch {
+            // best-effort only
+        }
+    };
+
     // Parse callback errors and show them on the page.
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -81,17 +98,49 @@ export default function LoginPage() {
             // Clean the URL so a refresh doesn't keep showing the error.
             window.history.replaceState({}, "", "/login");
         }
+
+        // If we attempted to link an OAuth identity to an anonymous user but that identity already exists
+        // on another account, fall back to normal OAuth sign-in (common/expected case).
+        if (errorCode === "identity_already_exists") {
+            const provider = window.sessionStorage.getItem(OAUTH_INTENT_PROVIDER_KEY);
+            const alreadyTried = window.sessionStorage.getItem(OAUTH_FALLBACK_USED_KEY) === "1";
+
+            if ((provider === "google" || provider === "facebook") && !alreadyTried) {
+                window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+
+                const redirectTo = `${BASE_URL}/auth/callback`;
+                void supabase.auth.signInWithOAuth({
+                    provider,
+                    options: { redirectTo },
+                });
+            }
+        }
     }, [BASE_URL, supabase]);
 
     const handleGoogleLogin = async () => {
         setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // Let Supabase Auth be the source of truth: normal OAuth sign-in / sign-up flow.
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo },
-        });
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(OAUTH_INTENT_PROVIDER_KEY, "google");
+            window.sessionStorage.removeItem(OAUTH_FALLBACK_USED_KEY);
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        if (isAnonymous) {
+            await rememberPreAuthUserIdIfAnonymous();
+        }
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "google",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo },
+            });
 
         if (error) {
             console.error("Error logging in:", error.message);
@@ -109,11 +158,26 @@ export default function LoginPage() {
         setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // Let Supabase Auth be the source of truth: normal OAuth sign-in / sign-up flow.
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "facebook",
-            options: { redirectTo },
-        });
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(OAUTH_INTENT_PROVIDER_KEY, "facebook");
+            window.sessionStorage.removeItem(OAUTH_FALLBACK_USED_KEY);
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        if (isAnonymous) {
+            await rememberPreAuthUserIdIfAnonymous();
+        }
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "facebook",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "facebook",
+                options: { redirectTo },
+            });
 
         if (error) {
             console.error("Error logging in:", error.message);
@@ -139,6 +203,7 @@ export default function LoginPage() {
 
     const handleSendOtp = async () => {
         if (!email) return;
+        await rememberPreAuthUserIdIfAnonymous();
         setIsLoading(true);
         const { error } = await supabase.auth.signInWithOtp({ email });
         setIsLoading(false);
@@ -243,6 +308,7 @@ export default function LoginPage() {
                             <button
                                 onClick={() => {
                                     void trackLoginWith("email");
+                                    void rememberPreAuthUserIdIfAnonymous();
                                     setIsEmailMode(true);
                                 }}
                                 className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"

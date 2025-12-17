@@ -1,34 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
 
-const AFFILIATION_USER_ID_KEY = "affiliation_user_id";
-
-function generateUuidV4Fallback() {
-    // RFC4122-ish v4 fallback (browser-safe, no dependencies)
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
-}
-
-export function getOrCreateAffiliationUserId() {
-    if (typeof window === "undefined") return null;
-
-    try {
-        let id = window.localStorage.getItem(AFFILIATION_USER_ID_KEY);
-        if (!id) {
-            id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                ? crypto.randomUUID()
-                : generateUuidV4Fallback();
-            window.localStorage.setItem(AFFILIATION_USER_ID_KEY, id);
-        }
-        return id;
-    } catch (err) {
-        console.error("[affiliation] failed to access localStorage for browser id:", err);
-        return null;
-    }
-}
-
 export const trackUserClick = async (tag: string) => {
     try {
         const supabase = createClient();
@@ -71,9 +42,36 @@ export const trackUserClick = async (tag: string) => {
 
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
-async function upsertAffiliation(fields: Record<string, unknown>) {
+async function ensureUserId() {
     const supabase = createClient();
-    const userId = getOrCreateAffiliationUserId();
+
+    const {
+        data: { session },
+        error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        console.error("[affiliation] getSession failed:", sessionError);
+    }
+
+    let user = session?.user ?? null;
+
+    // Ensure we always have an auth user id to write affiliation to.
+    // Anonymous users are stored in auth.users (is_anonymous=true) and behave like authenticated users for RLS.
+    if (!user) {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+            console.error("[affiliation] signInAnonymously failed:", error);
+            return { supabase, userId: null as string | null };
+        }
+        user = data.user ?? null;
+    }
+
+    return { supabase, userId: user?.id ?? null };
+}
+
+async function upsertAffiliation(fields: Record<string, unknown>) {
+    const { supabase, userId } = await ensureUserId();
     if (!userId) return;
 
     const payload = {
