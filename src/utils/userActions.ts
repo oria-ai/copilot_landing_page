@@ -1,72 +1,61 @@
-import { createClient } from '@/lib/supabase/client';
-import type { Session, User } from "@supabase/supabase-js";
-
-const SESSION_COOKIE_KEY = "session_cookie";
-const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
-
-type SessionCookieValue = {
-    user_id: string;
-    access_token?: string;
-    refresh_token?: string;
-};
+import { createClient, createTrackingClient } from "@/lib/supabase/client";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 function isAnonymousUser(user: User | null | undefined): boolean {
     return Boolean((user as any)?.is_anonymous);
 }
 
-function readSessionCookieRaw(): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-        return (
-            window.localStorage.getItem(SESSION_COOKIE_KEY) ??
-            window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY)
-        );
-    } catch {
-        return null;
-    }
-}
+async function tryMigrateLegacySessionCookie(tracking: SupabaseClient) {
+    if (typeof window === "undefined") return;
 
-function parseSessionCookie(raw: string | null): SessionCookieValue | null {
-    if (!raw) return null;
+    // Older versions stored a custom JSON (or raw uuid) under `session_cookie`.
+    // The tracking client expects Supabase's native session shape. Best-effort migrate.
+    const raw = window.localStorage.getItem("session_cookie");
+    if (!raw) return;
+
+    // If it looks like a raw UUID string, clear it so Supabase can manage the key.
+    if (!raw.trim().startsWith("{")) {
+        try {
+            window.localStorage.removeItem("session_cookie");
+        } catch {
+            // ignore
+        }
+        return;
+    }
 
     try {
         const parsed = JSON.parse(raw) as unknown;
-        if (!parsed || typeof parsed !== "object") return null;
+        if (!parsed || typeof parsed !== "object") return;
 
         const obj = parsed as Record<string, unknown>;
-        const userId = typeof obj.user_id === "string" ? obj.user_id : null;
-        if (!userId) return null;
 
-        const accessToken = typeof obj.access_token === "string" ? obj.access_token : undefined;
-        const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : undefined;
+        // Legacy custom format: { user_id, access_token, refresh_token }
+        const legacyUserId = typeof obj.user_id === "string" ? obj.user_id : null;
+        const accessToken = typeof obj.access_token === "string" ? obj.access_token : null;
+        const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : null;
 
-        return { user_id: userId, access_token: accessToken, refresh_token: refreshToken };
+        if (legacyUserId && accessToken && refreshToken) {
+            const { error } = await tracking.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+            });
+            if (error) {
+                console.error("[affiliation] legacy session_cookie migration failed:", error);
+                try {
+                    window.localStorage.removeItem("session_cookie");
+                } catch {
+                    // ignore
+                }
+            }
+        }
     } catch {
-        // Legacy format (raw user id string)
-        return { user_id: raw };
+        // If JSON is malformed, clear it so Supabase can recreate it.
+        try {
+            window.localStorage.removeItem("session_cookie");
+        } catch {
+            // ignore
+        }
     }
-}
-
-function writeSessionCookie(value: SessionCookieValue) {
-    if (typeof window === "undefined") return;
-    try {
-        const payload =
-            value.access_token && value.refresh_token ? JSON.stringify(value) : value.user_id;
-        window.localStorage.setItem(SESSION_COOKIE_KEY, payload);
-        // Clean up legacy key to avoid confusion.
-        window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
-    } catch {
-        // best-effort only
-    }
-}
-
-function writeAnonSessionCookieFromSession(session: Session) {
-    if (!isAnonymousUser(session.user)) return;
-    writeSessionCookie({
-        user_id: session.user.id,
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-    });
 }
 
 export const trackUserClick = async (tag: string) => {
@@ -112,7 +101,7 @@ export const trackUserClick = async (tag: string) => {
 type LoginMethod = "email" | "google" | "apple" | "facebook";
 
 async function ensureUserId() {
-    const supabase = createClient();
+    const supabase = createTrackingClient();
 
     const {
         data: { session },
@@ -125,53 +114,26 @@ async function ensureUserId() {
 
     let user = session?.user ?? null;
 
-    // Keep a restorable anonymous session (pre-login browser identity) across logouts.
-    if (session && isAnonymousUser(user)) {
-        writeAnonSessionCookieFromSession(session);
+    // Best-effort migration for older `session_cookie` formats.
+    if (!user) {
+        await tryMigrateLegacySessionCookie(supabase);
+        const { data: after } = await supabase.auth.getSession();
+        user = after.session?.user ?? null;
     }
 
-    // Ensure we always have an auth user id to write affiliation to.
-    // Anonymous users are stored in auth.users (is_anonymous=true) and behave like authenticated users for RLS.
+    // Tracking client must remain anonymous (browser-level identifier).
+    if (user && !isAnonymousUser(user)) {
+        await supabase.auth.signOut();
+        user = null;
+    }
+
     if (!user) {
-        const stored = parseSessionCookie(readSessionCookieRaw());
-        const canRestore = Boolean(stored?.access_token && stored?.refresh_token);
-
-        if (canRestore) {
-            const { data, error } = await supabase.auth.setSession({
-                access_token: stored!.access_token!,
-                refresh_token: stored!.refresh_token!,
-            });
-
-            const restoredSession = data.session ?? null;
-            const restoredUser = restoredSession?.user ?? null;
-
-            if (error) {
-                console.error("[affiliation] restore anon session failed:", error);
-            } else if (restoredSession && restoredUser && isAnonymousUser(restoredUser)) {
-                user = restoredUser;
-                writeAnonSessionCookieFromSession(restoredSession);
-            } else {
-                try {
-                    window.localStorage.removeItem(SESSION_COOKIE_KEY);
-                } catch {
-                    // ignore
-                }
-            }
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+            console.error("[affiliation] signInAnonymously failed:", error);
+            return { supabase, userId: null as string | null };
         }
-
-        if (!user) {
-            const { data, error } = await supabase.auth.signInAnonymously();
-            if (error) {
-                console.error("[affiliation] signInAnonymously failed:", error);
-                return { supabase, userId: null as string | null };
-            }
-            user = data.user ?? null;
-            if (data.session) {
-                writeAnonSessionCookieFromSession(data.session);
-            } else if (user && isAnonymousUser(user)) {
-                writeSessionCookie({ user_id: user.id });
-            }
-        }
+        user = data.user ?? null;
     }
 
     return { supabase, userId: user?.id ?? null };

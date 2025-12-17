@@ -6,11 +6,9 @@ import { FaApple, FaFacebook } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getBaseUrl } from '@/lib/url';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, createTrackingClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
-const SESSION_COOKIE_KEY = "session_cookie";
-const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
 const OAUTH_INTENT_PROVIDER_KEY = "affiliation_oauth_intent_provider";
 const OAUTH_FALLBACK_USED_KEY = "affiliation_oauth_fallback_used";
 
@@ -64,39 +62,12 @@ export default function LoginPage() {
 
     const rememberPreAuthUserIdIfAnonymous = async () => {
         try {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error) return;
-            const isAnonymous = Boolean((user as any)?.is_anonymous);
-            if (isAnonymous && user?.id) {
-                const existing =
-                    window.localStorage.getItem(SESSION_COOKIE_KEY) ??
-                    window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
-
-                // Migrate legacy key -> new key (best-effort).
-                if (!window.localStorage.getItem(SESSION_COOKIE_KEY)) {
-                    const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
-                    if (legacy) {
-                        window.localStorage.setItem(SESSION_COOKIE_KEY, legacy);
-                        window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
-                    }
-                }
-
-                // If not set, persist the anonymous user id (or tokens if available).
-                if (!existing) {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session?.user?.id && Boolean((session.user as any)?.is_anonymous)) {
-                        window.localStorage.setItem(
-                            SESSION_COOKIE_KEY,
-                            JSON.stringify({
-                                user_id: session.user.id,
-                                access_token: session.access_token,
-                                refresh_token: session.refresh_token,
-                            }),
-                        );
-                    } else {
-                        window.localStorage.setItem(SESSION_COOKIE_KEY, user.id);
-                    }
-                }
+            // Ensure the browser-level tracking session exists before redirecting to OAuth/OTP flows.
+            // This session is stored under the `session_cookie` localStorage key by the tracking client.
+            const tracking = createTrackingClient();
+            const { data: { session } } = await tracking.auth.getSession();
+            if (!session?.user) {
+                await tracking.auth.signInAnonymously();
             }
         } catch {
             // best-effort only
