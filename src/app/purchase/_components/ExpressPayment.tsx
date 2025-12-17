@@ -27,13 +27,9 @@ export default function ExpressPayment() {
 
                 {/* Summary Box */}
                 <div className="space-y-3 pt-2">
-                    <div className="flex justify-between text-sm text-gray-500 font-medium">
-                        <span>Yearly Plan</span>
-                        <span>$90.00</span>
-                    </div>
                     <div className="flex justify-between text-sm text-gray-500 border-b border-gray-100 pb-4 font-medium">
-                        <span>Sales Tax (8%)</span>
-                        <span>$7.20</span>
+                        <span>Yearly Plan</span>
+                        <span>$90.00/year</span>
                     </div>
 
                     <div className="text-center pt-2 space-y-1">
@@ -41,7 +37,7 @@ export default function ExpressPayment() {
                             Pay now: $0.00
                         </div>
                         <p className="text-xs text-gray-400 font-medium">
-                            Pay on December 20, 2025: $97.20 (Billed Yearly)
+                            Pay on December 20, 2025: $90.00 (Billed Yearly)
                         </p>
                     </div>
                 </div>

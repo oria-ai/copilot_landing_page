@@ -268,7 +268,7 @@ export default function LoginPage() {
                                 {showMoreOptions && (
                                     <button
                                         onClick={handleFacebookLoginClick}
-                                        className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
+                                        className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm animate-in fade-in slide-in-from-top-2 cursor-pointer"
                                     >
                                         <FaFacebook className="w-6 h-6 text-[#1877F2]" />
                                         <span>Log in with Facebook</span>

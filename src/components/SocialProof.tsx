@@ -11,15 +11,24 @@ const stats = [
 
 const testimonials = [
     {
-        user: 'TechCorp_Learning',
+        name: 'Sarah Chen',
+        role: 'L&D Director',
+        initials: 'SC',
+        color: 'from-purple-500 to-indigo-500',
         text: "The adaptive level system saved us hours of training time. Employees get exactly what they need.",
     },
     {
-        user: 'FinanceTeamLead',
+        name: 'David Park',
+        role: 'Finance Team Lead',
+        initials: 'DP',
+        color: 'from-blue-500 to-cyan-500',
         text: "My team mastered Excel Copilot in days. The hands-on labs are a game changer.",
     },
     {
-        user: 'HR_Director_Sarah',
+        name: 'Sarah Miller',
+        role: 'HR Director',
+        initials: 'SM',
+        color: 'from-pink-500 to-rose-500',
         text: "The manager dashboard gives me the exact visibility I need on company-wide adoption.",
     }
 ];
@@ -73,7 +82,15 @@ export default function SocialProof() {
                                     {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
                                 </div>
                                 <p className="text-gray-300 mb-4 text-sm leading-relaxed">"{t.text}"</p>
-                                <p className="text-white font-semibold text-sm">@{t.user}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white text-sm font-bold`}>
+                                        {t.initials}
+                                    </div>
+                                    <div>
+                                        <p className="text-white font-semibold text-sm">{t.name}</p>
+                                        <p className="text-gray-400 text-xs">{t.role}</p>
+                                    </div>
+                                </div>
                             </motion.div>
                         ))}
                     </div>
@@ -82,3 +99,4 @@ export default function SocialProof() {
         </section>
     );
 }
+
