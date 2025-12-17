@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type EmailOtpType } from '@supabase/supabase-js'
-import { getBaseUrl } from '@/lib/url'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -11,13 +10,15 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') as EmailOtpType | null
     // if "next" is in param, use it as the redirect URL
     const next = searchParams.get('next') ?? '/trial'
+    const safeNext = next.startsWith('/') ? next : '/trial'
 
     if (code) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            const baseUrl = getBaseUrl()
-            return NextResponse.redirect(`${baseUrl}${next}`)
+            // Keep redirects on the same origin that completed the auth exchange,
+            // otherwise cookies/session can be lost across domains.
+            return NextResponse.redirect(`${origin}${safeNext}`)
         }
 
         // Surface the underlying auth error (e.g. identity_already_exists) to the login page.
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
         // "code" isn't always present on the AuthError type, so we access it safely.
         const errorCode = (error as unknown as { code?: string }).code
         if (errorCode) loginUrl.searchParams.set('error_code', errorCode)
-        loginUrl.searchParams.set('next', next)
+        loginUrl.searchParams.set('next', safeNext)
         return NextResponse.redirect(loginUrl)
     }
 
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
         })
         if (!error) {
             // Redirect to dashboard after successful verification
-            return NextResponse.redirect(`${origin}${next}`)
+            return NextResponse.redirect(`${origin}${safeNext}`)
         }
 
         const loginUrl = new URL(`${origin}/login`)
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
         loginUrl.searchParams.set('error_description', error.message)
         const errorCode = (error as unknown as { code?: string }).code
         if (errorCode) loginUrl.searchParams.set('error_code', errorCode)
-        loginUrl.searchParams.set('next', next)
+        loginUrl.searchParams.set('next', safeNext)
         return NextResponse.redirect(loginUrl)
     }
 
