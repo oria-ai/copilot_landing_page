@@ -33,7 +33,7 @@ If you click "Allow All" on our cookie banner, Google Analytics may collect usag
 ## 3. Cookies and Similar Technologies
 We use cookies and similar technologies as described in our Cookie Policy, including:
 - Essential authentication/session storage (including anonymous sessions) via Supabase.
-- Local storage may be used to persist your session (so you stay logged in between visits) and to store a first-party identifier to maintain continuity between an anonymous visit and a later login/signup (for example, `affiliation_pre_auth_user_id`). This storage is **strictly necessary** for the operation and security of the Service and is not used for advertising.
+- Local storage may be used to persist your session (so you stay logged in between visits) and to store a first-party identifier to maintain continuity between an anonymous visit and a later login/signup (for example, `session_cookie`). This storage is **strictly necessary** for the operation and security of the Service and is not used for advertising.
 - Consent preference storage in local storage (`cookie_consent`).
 - Optional analytics technologies (Google Analytics / Google Tag Manager) only with consent.
 

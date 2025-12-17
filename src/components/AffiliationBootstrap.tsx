@@ -1,29 +1,82 @@
 "use client";
 
 import { useEffect } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-const PRE_AUTH_USER_ID_KEY = "affiliation_pre_auth_user_id";
+const SESSION_COOKIE_KEY = "session_cookie";
+const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
 
-function getPreAuthUserId(): string | null {
+type SessionCookieValue = {
+  user_id: string;
+  access_token?: string;
+  refresh_token?: string;
+};
+
+function isAnonymousUser(user: User | null | undefined): boolean {
+  return Boolean((user as any)?.is_anonymous);
+}
+
+function readSessionCookieRaw(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage.getItem(PRE_AUTH_USER_ID_KEY);
+    return (
+      window.localStorage.getItem(SESSION_COOKIE_KEY) ??
+      window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY)
+    );
   } catch {
     return null;
   }
 }
 
-function setPreAuthUserIdIfMissing(userId: string) {
+function parseSessionCookie(raw: string | null): SessionCookieValue | null {
+  if (!raw) return null;
+
+  // New format (JSON)
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const obj = parsed as Record<string, unknown>;
+    const userId = typeof obj.user_id === "string" ? obj.user_id : null;
+    if (!userId) return null;
+
+    const accessToken = typeof obj.access_token === "string" ? obj.access_token : undefined;
+    const refreshToken = typeof obj.refresh_token === "string" ? obj.refresh_token : undefined;
+
+    return { user_id: userId, access_token: accessToken, refresh_token: refreshToken };
+  } catch {
+    // Legacy format (raw user id string)
+    return { user_id: raw };
+  }
+}
+
+function getSessionCookieUserId(): string | null {
+  const parsed = parseSessionCookie(readSessionCookieRaw());
+  return parsed?.user_id ?? null;
+}
+
+function writeSessionCookie(value: SessionCookieValue) {
   if (typeof window === "undefined") return;
   try {
-    if (!window.localStorage.getItem(PRE_AUTH_USER_ID_KEY)) {
-      window.localStorage.setItem(PRE_AUTH_USER_ID_KEY, userId);
-    }
+    // Keep it readable if we only have the id; otherwise store tokens for restoration.
+    const payload =
+      value.access_token && value.refresh_token ? JSON.stringify(value) : value.user_id;
+    window.localStorage.setItem(SESSION_COOKIE_KEY, payload);
+    // Clean up legacy key to avoid confusion.
+    window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
   } catch {
     // best-effort only
   }
+}
+
+function writeAnonSessionCookieFromSession(session: Session) {
+  if (!isAnonymousUser(session.user)) return;
+  writeSessionCookie({
+    user_id: session.user.id,
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+  });
 }
 
 type AffiliationUpsert = {
@@ -182,7 +235,7 @@ export default function AffiliationBootstrap() {
     const upsertAuthSnapshot = async (user: User) => {
       await ensureRowExists(user.id);
 
-      const preAuthId = getPreAuthUserId();
+      const preAuthId = getSessionCookieUserId();
 
       const payload: AffiliationUpsert = {
         user_id: user.id,
@@ -212,6 +265,44 @@ export default function AffiliationBootstrap() {
 
       let user = session?.user ?? null;
 
+      // If we already have an anonymous session, keep a copy so we can restore it after sign-out.
+      if (session && isAnonymousUser(user)) {
+        writeAnonSessionCookieFromSession(session);
+      }
+
+      // If the user signed out, Supabase clears its stored session.
+      // To avoid creating a new anonymous user (and a new affiliation row) on every logout,
+      // we restore the previous anonymous session from localStorage if possible.
+      if (!user) {
+        const stored = parseSessionCookie(readSessionCookieRaw());
+        const canRestore = Boolean(stored?.access_token && stored?.refresh_token);
+
+        if (canRestore) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: stored!.access_token!,
+            refresh_token: stored!.refresh_token!,
+          });
+
+          const restoredSession = data.session ?? null;
+          const restoredUser = restoredSession?.user ?? null;
+
+          if (error) {
+            console.error("[affiliation] restore anon session failed:", error);
+          } else if (restoredSession && restoredUser && isAnonymousUser(restoredUser)) {
+            user = restoredUser;
+            writeAnonSessionCookieFromSession(restoredSession);
+          } else {
+            // Don't repeatedly attempt to restore a non-anonymous or invalid session.
+            try {
+              window.localStorage.removeItem(SESSION_COOKIE_KEY);
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      // If we couldn't restore, create a fresh anonymous session and persist it.
       if (!user) {
         const { data, error } = await supabase.auth.signInAnonymously();
         if (error) {
@@ -219,15 +310,14 @@ export default function AffiliationBootstrap() {
           return;
         }
         user = data.user ?? null;
+        if (data.session) {
+          writeAnonSessionCookieFromSession(data.session);
+        } else if (user && isAnonymousUser(user)) {
+          writeSessionCookie({ user_id: user.id });
+        }
       }
 
       if (cancelled || !user) return;
-
-      // Persist a stable browser identifier (first anonymous auth user id) across logouts/reloads.
-      const isAnonymous = Boolean((user as any)?.is_anonymous);
-      if (isAnonymous) {
-        setPreAuthUserIdIfMissing(user.id);
-      }
 
       await upsertAuthSnapshot(user);
       await writeInitialUrlIfMissing(user.id);
@@ -239,9 +329,13 @@ export default function AffiliationBootstrap() {
       if (cancelled) return;
 
       const user = session?.user ?? null;
+      if (session && isAnonymousUser(user)) {
+        // Keep anonymous session tokens fresh (refresh tokens can rotate).
+        writeAnonSessionCookieFromSession(session);
+      }
 
       // If the user signs out, immediately create a fresh anonymous session
-      // so we keep a stable auth.uid() for continued tracking.
+      // (or restore the previous anonymous session) so we keep a stable browser identifier for continued tracking.
       if (event === "SIGNED_OUT") {
         void ensureSessionAndSync();
         return;
