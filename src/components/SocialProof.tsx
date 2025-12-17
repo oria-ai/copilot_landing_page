@@ -11,20 +11,27 @@ const stats = [
 
 const testimonials = [
     {
-        user: 'TechCorp_Learning',
+        name: 'Alex Chen',
+        role: 'Tech Lead at TechCorp',
         text: "The adaptive level system saved us hours of training time. Employees get exactly what they need.",
+        image: '/avatars/tech_manager.png'
     },
     {
-        user: 'FinanceTeamLead',
+        name: 'Sarah Miller',
+        role: 'Finance Team Lead',
         text: "My team mastered Excel Copilot in days. The hands-on labs are a game changer.",
+        image: '/avatars/finance_lead.png'
     },
     {
-        user: 'HR_Director_Sarah',
+        name: 'Sharon Cohen',
+        role: 'HR Director',
         text: "The manager dashboard gives me the exact visibility I need on company-wide adoption.",
+        image: '/avatars/hr_director.png'
     }
 ];
 
 import { useAnimations } from '@/lib/AnimationContext';
+import Image from 'next/image';
 
 export default function SocialProof() {
     const { animationsEnabled } = useAnimations();
@@ -72,8 +79,21 @@ export default function SocialProof() {
                                 <div className="flex gap-1 text-yellow-500 mb-4">
                                     {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
                                 </div>
-                                <p className="text-gray-300 mb-4 text-sm leading-relaxed">"{t.text}"</p>
-                                <p className="text-white font-semibold text-sm">@{t.user}</p>
+                                <p className="text-gray-300 mb-6 text-sm leading-relaxed">"{t.text}"</p>
+                                <div className="flex items-center gap-3">
+                                    <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20">
+                                        <Image
+                                            src={t.image}
+                                            alt={t.name}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-white font-semibold text-sm">{t.name}</p>
+                                        <p className="text-gray-400 text-xs">{t.role}</p>
+                                    </div>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

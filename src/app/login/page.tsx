@@ -67,7 +67,10 @@ export default function LoginPage() {
             if (error) return;
             const isAnonymous = Boolean((user as any)?.is_anonymous);
             if (isAnonymous && user?.id) {
-                window.sessionStorage.setItem(PRE_AUTH_USER_ID_KEY, user.id);
+                const existing = window.localStorage.getItem(PRE_AUTH_USER_ID_KEY);
+                if (!existing) {
+                    window.localStorage.setItem(PRE_AUTH_USER_ID_KEY, user.id);
+                }
             }
         } catch {
             // best-effort only

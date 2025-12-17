@@ -6,6 +6,26 @@ import { createClient } from "@/lib/supabase/client";
 
 const PRE_AUTH_USER_ID_KEY = "affiliation_pre_auth_user_id";
 
+function getPreAuthUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(PRE_AUTH_USER_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setPreAuthUserIdIfMissing(userId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!window.localStorage.getItem(PRE_AUTH_USER_ID_KEY)) {
+      window.localStorage.setItem(PRE_AUTH_USER_ID_KEY, userId);
+    }
+  } catch {
+    // best-effort only
+  }
+}
+
 type AffiliationUpsert = {
   user_id: string;
   url?: string | null;
@@ -162,10 +182,7 @@ export default function AffiliationBootstrap() {
     const upsertAuthSnapshot = async (user: User) => {
       await ensureRowExists(user.id);
 
-      const preAuthId =
-        typeof window !== "undefined"
-          ? window.sessionStorage.getItem(PRE_AUTH_USER_ID_KEY)
-          : null;
+      const preAuthId = getPreAuthUserId();
 
       const payload: AffiliationUpsert = {
         user_id: user.id,
@@ -180,9 +197,6 @@ export default function AffiliationBootstrap() {
       const { error } = await supabase.from("affiliation").upsert(payload, { onConflict: "user_id" });
       if (error) {
         console.error("[affiliation] upsert auth snapshot failed:", error);
-      } else if (typeof window !== "undefined" && preAuthId) {
-        // If the user upgraded (same id) or we linked rows successfully, clear the marker.
-        window.sessionStorage.removeItem(PRE_AUTH_USER_ID_KEY);
       }
     };
 
@@ -208,6 +222,12 @@ export default function AffiliationBootstrap() {
       }
 
       if (cancelled || !user) return;
+
+      // Persist a stable browser identifier (first anonymous auth user id) across logouts/reloads.
+      const isAnonymous = Boolean((user as any)?.is_anonymous);
+      if (isAnonymous) {
+        setPreAuthUserIdIfMissing(user.id);
+      }
 
       await upsertAuthSnapshot(user);
       await writeInitialUrlIfMissing(user.id);
