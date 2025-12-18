@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type EmailOtpType } from '@supabase/supabase-js'
-import { getBaseUrl } from '@/lib/url'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -16,8 +15,8 @@ export async function GET(request: Request) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            const baseUrl = getBaseUrl()
-            return NextResponse.redirect(`${baseUrl}${next}`)
+            // Use the origin from the request to redirect back to the same domain
+            return NextResponse.redirect(`${origin}${next}`)
         }
     }
 

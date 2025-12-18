@@ -5,7 +5,6 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaApple, FaFacebook } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getBaseUrl } from '@/lib/url';
 import { createClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
@@ -35,7 +34,8 @@ export default function LoginPage() {
     const [isAppleLoading, setIsAppleLoading] = useState(false);
     const [showAppleError, setShowAppleError] = useState(false);
 
-    const BASE_URL = getBaseUrl();
+    // Use the current browser origin for dynamic base URL (supports multiple domains)
+    const BASE_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
     // Logic to hide the UserWay floating widget (copied from Trial page)
     useEffect(() => {
