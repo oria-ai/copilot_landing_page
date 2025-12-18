@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Table, Presentation, Users, Mail, Cloud, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 
-const tabs = [
+export const tabs = [
     {
         id: 'word',
         label: 'Word',
@@ -88,8 +88,21 @@ const tabs = [
 import { useAnimations } from '@/lib/AnimationContext';
 import { trackStartFreeTrialClick } from '@/utils/userActions';
 
-export default function Hero() {
-    const [activeTab, setActiveTab] = useState(tabs[0]);
+interface HeroProps {
+    initialTool?: string;
+}
+
+export default function Hero({ initialTool }: HeroProps) {
+    // Find the initial tab based on the prop, or default to first tab
+    const getInitialTab = () => {
+        if (initialTool) {
+            const found = tabs.find(t => t.id === initialTool);
+            if (found) return found;
+        }
+        return tabs[0];
+    };
+
+    const [activeTab, setActiveTab] = useState(getInitialTab);
     const [autoPlay, setAutoPlay] = useState(true);
     const { animationsEnabled } = useAnimations();
 
