@@ -135,8 +135,19 @@ export default function Hero({ initialTool }: HeroProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
                 >
-                    Your Personalized <br />
-                    <span className="text-gradient">M365 Training Program</span>
+                    {initialTool ? (
+                        <>
+                            Master Copilot in <br />
+                            <span className="text-gradient">
+                                {tabs.find(t => t.id === initialTool)?.label || 'Microsoft 365'}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            Your Personalized <br />
+                            <span className="text-gradient">M365 Training Program</span>
+                        </>
+                    )}
                 </motion.h1>
                 <motion.p
                     initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
@@ -144,7 +155,16 @@ export default function Hero({ initialTool }: HeroProps) {
                     transition={{ delay: 0.1 }}
                     className="text-gray-400 text-xl max-w-2xl mx-auto"
                 >
-                    Master Copilot with expert video lessons and step-by-step, "WalkMe-style" guidance inside Word, Excel, and PowerPoint.
+                    {initialTool ? (
+                        <>
+                            {tabs.find(t => t.id === initialTool)?.description}
+                            <span className="block mt-4 text-sm text-gray-500">
+                                (Plus: The bundle also includes {tabs.filter(t => t.id !== initialTool).map(t => t.label).join(', ')}, and more)
+                            </span>
+                        </>
+                    ) : (
+                        'Master Copilot with expert video lessons and step-by-step, "WalkMe-style" guidance inside Word, Excel, and PowerPoint.'
+                    )}
                 </motion.p>
 
                 <motion.div
@@ -164,46 +184,103 @@ export default function Hero({ initialTool }: HeroProps) {
             </div>
 
             {/* Tab Navigation */}
-            <div id="tools" className="flex flex-wrap justify-center gap-2 mb-12 z-10 scroll-mt-32">
-                {tabs.map((tab) => {
-                    const isActive = activeTab.id === tab.id;
-                    // @ts-ignore - customGradient exists on some tabs
-                    const gradientStyle = isActive && tab.customGradient ? {
-                        backgroundImage: tab.customGradient,
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                        color: 'transparent'
-                    } : {
-                        color: isActive ? tab.baseColor : undefined
-                    };
+            <div id="tools" className="flex flex-col items-center gap-6 mb-12 z-10 scroll-mt-32 w-full max-w-5xl">
+                {initialTool ? (
+                    // Tool-Specific Layout
+                    <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center max-w-4xl mx-auto">
+                        {/* Selected Tool - Big & Prominent (Left) */}
+                        <div className="flex-shrink-0">
+                            {(() => {
+                                const tab = tabs.find(t => t.id === initialTool);
+                                if (!tab) return null;
+                                return (
+                                    <div
+                                        onClick={() => setActiveTab(tab)}
+                                        className="flex items-center gap-3 px-8 py-5 rounded-2xl border transition-all duration-300 relative bg-black/40 backdrop-blur-md cursor-pointer hover:scale-105"
+                                        style={{
+                                            borderColor: tab.baseColor,
+                                            boxShadow: `0 0 30px ${tab.baseColor}20`,
+                                        }}
+                                    >
+                                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r opacity-10" style={{
+                                            backgroundImage: `linear-gradient(to right, ${tab.baseColor}, transparent)`
+                                        }} />
+                                        <tab.icon className="w-8 h-8" style={{ color: tab.baseColor }} />
+                                        <span className="text-2xl font-bold text-white tracking-tight">
+                                            {tab.label}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => {
-                                setActiveTab(tab);
-                            }}
-                            style={isActive ? {
-                                borderColor: tab.baseColor,
-                                backgroundColor: `${tab.baseColor}10`, // 10% opacity
-                                boxShadow: `0 0 20px ${tab.baseColor}40`, // 25% opacity glow
-                            } : {}}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
-                                ? ''
-                                : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                                }`}
-                        >
-                            <tab.icon
-                                className="w-4 h-4"
-                                style={isActive ? { color: tab.baseColor } : {}}
-                            />
-                            <span style={gradientStyle}>
-                                {tab.label}
-                            </span>
-                        </button>
-                    );
-                })}
+                        {/* Others Group (Right) */}
+                        <div className="flex flex-col items-center md:items-start gap-2 flex-grow">
+                            <div className="text-gray-500 text-xs font-medium uppercase tracking-widest pl-1">
+                                Also Included
+                            </div>
+                            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                                {tabs.filter(t => t.id !== initialTool).map((tab) => {
+                                    const isActive = activeTab.id === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
+                                                    ? 'bg-white/10 border-white/20 text-white shadow-lg'
+                                                    : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                                }`}
+                                        >
+                                            <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} style={isActive ? {} : { color: tab.baseColor }} />
+                                            <span>{tab.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    // Default Layout (Original)
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {tabs.map((tab) => {
+                            const isActive = activeTab.id === tab.id;
+                            // @ts-ignore
+                            const gradientStyle = isActive && tab.customGradient ? {
+                                backgroundImage: tab.customGradient,
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                                color: 'transparent'
+                            } : {
+                                color: isActive ? tab.baseColor : undefined
+                            };
+
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab)}
+                                    style={isActive ? {
+                                        borderColor: tab.baseColor,
+                                        backgroundColor: `${tab.baseColor}10`,
+                                        boxShadow: `0 0 20px ${tab.baseColor}40`,
+                                    } : {}}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
+                                        ? ''
+                                        : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                        }`}
+                                >
+                                    <tab.icon
+                                        className="w-4 h-4"
+                                        style={isActive ? { color: tab.baseColor } : {}}
+                                    />
+                                    <span style={gradientStyle}>
+                                        {tab.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* Dynamic Content Display */}

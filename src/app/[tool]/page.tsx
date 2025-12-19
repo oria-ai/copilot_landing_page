@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import ValueSections from '@/components/ValueSections';
@@ -28,6 +28,11 @@ interface ToolPageProps {
 export default async function ToolPage({ params }: ToolPageProps) {
     const { tool } = await params;
     const tabId = slugToTabId[tool.toLowerCase()];
+
+    // Redirect 'chat' to home
+    if (tabId === 'chat') {
+        redirect('/');
+    }
 
     // Return 404 if invalid tool
     if (!tabId) {
