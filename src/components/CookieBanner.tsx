@@ -3,6 +3,7 @@
 import { useCookieConsent } from "@/lib/CookieConsentContext";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CookieBannerProps {
     cookiePolicyLink: string;
@@ -21,42 +22,65 @@ export default function CookieBanner({ cookiePolicyLink }: CookieBannerProps) {
         }
     }, [consent]);
 
-    if (!isVisible) return null;
-
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 md:p-6 shadow-lg">
-            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-zinc-600 dark:text-zinc-300 flex-1">
-                    <p>
-                        By clicking “Allow All”, you agree to the storage of cookies on your
-                        device to enhance site navigation, analyze site usage, and assist in
-                        our marketing efforts.{" "}
-                        <Link
-                            href={cookiePolicyLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                            Read the Cookie Policy
-                        </Link>
-                        .
-                    </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                    <button
-                        onClick={() => setConsent("denied")}
-                        className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+        <AnimatePresence>
+            {isVisible && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+                    />
+
+                    {/* Popup */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 p-6 md:p-8 overflow-hidden"
                     >
-                        Deny
-                    </button>
-                    <button
-                        onClick={() => setConsent("granted")}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                    >
-                        Allow All
-                    </button>
-                </div>
-            </div>
-        </div>
+                        <div className="text-center space-y-6">
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-bold text-gray-900">
+                                    Cookie Preferences
+                                </h3>
+                                <p className="text-gray-600 leading-relaxed text-sm">
+                                    We use cookies to enhance site navigation, analyze site usage, and
+                                    assist in our marketing efforts. By clicking “Allow All”, you agree
+                                    to the storing of cookies on your device.{" "}
+                                    <Link
+                                        href={cookiePolicyLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-medium text-violet-600 hover:text-violet-700 hover:underline"
+                                    >
+                                        Read Policy
+                                    </Link>
+                                    .
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <button
+                                    onClick={() => setConsent("granted")}
+                                    className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-full transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-violet-200 cursor-pointer"
+                                >
+                                    Allow All
+                                </button>
+
+                                <button
+                                    onClick={() => setConsent("denied")}
+                                    className="w-full bg-transparent hover:bg-gray-50 text-gray-500 font-semibold py-3 rounded-full transition-all active:scale-[0.98] text-sm cursor-pointer"
+                                >
+                                    Deny
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
     );
 }
