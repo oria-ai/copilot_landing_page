@@ -38,8 +38,8 @@ export default function RootLayout({
       >
         <CookieConsentProvider>
           <AffiliationBootstrap />
-          {/* <GoogleTagManager gtmId="GTM-WX66MW72" /> */}
-          {/* <GoogleAnalytics gaId="G-KJW3H27633" /> */}
+          <GoogleTagManager gtmId="GTM-WX66MW72" />
+          <GoogleAnalytics gaId="G-KJW3H27633" />
           <Script
             src="https://cdn.userway.org/widget.js"
             data-account="u9qKBcpIlF"
@@ -49,7 +49,7 @@ export default function RootLayout({
             {children}
             <Analytics />
           </AnimationProvider>
-          {/* <CookieBanner cookiePolicyLink="/cookie-policy.pdf" /> */}
+          <CookieBanner cookiePolicyLink="/cookie-policy.pdf" />
         </CookieConsentProvider>
       </body>
     </html>
