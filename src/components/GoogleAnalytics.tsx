@@ -1,14 +1,8 @@
 "use client";
 
-import { useCookieConsent } from "@/lib/CookieConsentContext";
 import Script from "next/script";
 
 export default function GoogleAnalytics({ gaId }: { gaId: string }) {
-    const { consent } = useCookieConsent();
-
-    if (consent !== "granted") {
-        return null;
-    }
 
     return (
         <>

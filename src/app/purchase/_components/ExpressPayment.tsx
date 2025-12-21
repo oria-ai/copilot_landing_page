@@ -64,6 +64,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* PayPal */}
                     <button
+                        id="btn-payment-paypal"
                         onClick={() => handlePaymentClick('paypal')}
                         className="w-full bg-[#FFC439] hover:bg-[#F4BB30] h-12 rounded-md flex items-center justify-center transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >
@@ -74,6 +75,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* Apple/Google Pay */}
                     <button
+                        id="btn-payment-apple-google"
                         onClick={() => handlePaymentClick('apple_google_pay')}
                         className="w-full bg-black hover:bg-gray-900 h-12 rounded-md flex items-center justify-center gap-2 text-white transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >
@@ -87,6 +89,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* Credit Card */}
                     <button
+                        id="btn-payment-card"
                         onClick={() => handlePaymentClick('card')}
                         className="w-full bg-white border border-gray-300 hover:border-gray-400 h-12 rounded-md flex items-center justify-center gap-3 text-gray-700 transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >

@@ -1,14 +1,8 @@
 "use client";
 
-import { useCookieConsent } from "@/lib/CookieConsentContext";
 import Script from "next/script";
 
 export default function GoogleTagManager({ gtmId }: { gtmId: string }) {
-    const { consent } = useCookieConsent();
-
-    if (consent !== "granted") {
-        return null;
-    }
 
     return (
         <>

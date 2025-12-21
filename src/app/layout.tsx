@@ -9,6 +9,7 @@ import CookieBanner from "@/components/CookieBanner";
 import AffiliationBootstrap from "@/components/AffiliationBootstrap";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import GoogleTagManager from "@/components/GoogleTagManager";
+import ConsentInitialization from "@/components/ConsentInitialization";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +39,7 @@ export default function RootLayout({
       >
         <CookieConsentProvider>
           <AffiliationBootstrap />
+          <ConsentInitialization />
           <GoogleTagManager gtmId="GTM-WX66MW72" />
           <GoogleAnalytics gaId="G-KJW3H27633" />
           <Script
