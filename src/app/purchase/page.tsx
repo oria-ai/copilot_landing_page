@@ -5,7 +5,11 @@ import PurchaseFAQ from "./_components/PurchaseFAQ";
 import Footer from "../../components/Footer";
 import CourseCarousel from "./_components/CourseCarousel";
 
-export default function PurchasePage() {
+interface PurchasePageProps {
+    initialPopupOpen?: boolean;
+}
+
+export default function PurchasePage({ initialPopupOpen = false }: PurchasePageProps) {
     return (
         <div className="min-h-screen bg-white text-[#2D2D2D] font-sans selection:bg-purple-200">
             <main>
@@ -13,7 +17,7 @@ export default function PurchasePage() {
                 <CourseCarousel />
 
                 {/* 2. Express Payment Section (White Background) */}
-                <ExpressPayment />
+                <ExpressPayment initialPopupOpen={initialPopupOpen} />
 
                 {/* 3. FAQ Section (White Background) */}
                 <PurchaseFAQ />

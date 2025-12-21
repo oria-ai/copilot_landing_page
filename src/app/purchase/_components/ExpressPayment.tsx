@@ -2,15 +2,29 @@
 
 import { FaPaypal, FaApple, FaGoogle, FaShieldAlt, FaLock } from "react-icons/fa";
 import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import MaintenancePopup from "./MaintenancePopup";
 import { trackPaymentMethodClick } from '@/utils/userActions';
 
-export default function ExpressPayment() {
-    const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
+interface ExpressPaymentProps {
+    initialPopupOpen?: boolean;
+}
+
+export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaymentProps) {
+    const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(initialPopupOpen);
+    const router = useRouter();
+
+    // Sync state if prop changes (though mainly for initial load)
+    useEffect(() => {
+        if (initialPopupOpen) {
+            setIsMaintenanceOpen(true);
+        }
+    }, [initialPopupOpen]);
 
     const handlePaymentClick = (method: string) => {
         void trackPaymentMethodClick(method);
+        router.push('/payment');
         setIsMaintenanceOpen(true);
     };
 
