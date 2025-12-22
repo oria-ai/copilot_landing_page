@@ -144,7 +144,7 @@ export default function Hero({ initialTool }: HeroProps) {
                         </>
                     ) : (
                         <>
-                            Your Personalized <br />
+                            Your Personalizedddd <br />
                             <span className="text-gradient">M365 Training Program</span>
                         </>
                     )}
@@ -227,8 +227,8 @@ export default function Hero({ initialTool }: HeroProps) {
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab)}
                                             className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
-                                                    ? 'bg-white/10 border-white/20 text-white shadow-lg'
-                                                    : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                                ? 'bg-white/10 border-white/20 text-white shadow-lg'
+                                                : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
                                                 }`}
                                         >
                                             <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} style={isActive ? {} : { color: tab.baseColor }} />
