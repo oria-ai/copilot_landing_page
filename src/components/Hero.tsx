@@ -144,7 +144,7 @@ export default function Hero({ initialTool }: HeroProps) {
                         </>
                     ) : (
                         <>
-                            Your Personalizedddd <br />
+                            Your Personalized <br />
                             <span className="text-gradient">M365 Training Program</span>
                         </>
                     )}
