@@ -110,7 +110,7 @@ function buildAffiliationUpsert(user: User | null): AffiliationUpsert {
 
   return {
     user_id: userId,
-    auth_id: user.id, // Supabase auth ID
+    auth_id: isAnonymous ? null : user.id, // Supabase auth ID (null for anonymous users)
 
     email: user.email ?? null,
     phone,
