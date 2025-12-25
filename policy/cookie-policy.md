@@ -15,7 +15,7 @@ These are required to operate the website and core features, including security 
 #### 1) Supabase Auth (including anonymous sessions)
 - **What it does:** We use Supabase to manage authentication and sessions. When you visit the site, we may create and store an authenticated session. If you are not logged in, this may be an **anonymous** session (an anonymous Supabase user/session) so we can maintain continuity and support the free-trial/signup flow.
 - **Why we use it:** Session management, security, fraud/abuse prevention, and to maintain continuity so actions taken before signup (for example, clicking "Start Free Trial" or choosing a login method) can be connected to the same session and, if you sign up, to your account.
-- **Storage:** First-party cookies and/or browser storage (such as localStorage), depending on your environment and browser configuration.
+- **Storage:** We use first-party cookies and/or browser storage (including **localStorage**) to store authentication/session information so you can remain logged in between visits. We may also store a first-party identifier in localStorage (for example, `session_cookie`) to help maintain continuity between an anonymous visit and a later login/signup.
 
 #### 2) Consent preference storage (cookie banner)
 - **What it does:** We store your cookie consent choice (e.g., "granted" or "denied") in your browser's local storage (the `cookie_consent` key).

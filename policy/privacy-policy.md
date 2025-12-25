@@ -33,6 +33,7 @@ If you click "Allow All" on our cookie banner, Google Analytics may collect usag
 ## 3. Cookies and Similar Technologies
 We use cookies and similar technologies as described in our Cookie Policy, including:
 - Essential authentication/session storage (including anonymous sessions) via Supabase.
+- Local storage may be used to persist your session (so you stay logged in between visits) and to store a first-party identifier to maintain continuity between an anonymous visit and a later login/signup (for example, `session_cookie`). This storage is **strictly necessary** for the operation and security of the Service and is not used for advertising.
 - Consent preference storage in local storage (`cookie_consent`).
 - Optional analytics technologies (Google Analytics / Google Tag Manager) only with consent.
 
@@ -63,6 +64,8 @@ We use reasonable technical and organizational measures such as encryption in tr
 
 ## 9. Your Rights
 Subject to applicable law, you may request access, correction, deletion, or export of your personal data, and object to or restrict certain processing. You can manage analytics consent through our cookie banner and your browser settings.
+
+**Data deletion:** If you wish to delete your account and remove your personal information from our records, please contact us at **shir@handsonai.co**. We will process your request and delete your data from our active systems within a reasonable timeframe, subject to any legal or security-related retention requirements.
 
 ## 10. International Transfers
 Our providers may process data in countries outside your residence. Where required, we use appropriate safeguards (such as contractual protections) for international transfers.

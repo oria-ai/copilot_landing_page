@@ -8,6 +8,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { trackLoginWith } from '@/utils/userActions';
 
+const SESSION_COOKIE_KEY = "session_cookie";
+const LEGACY_SESSION_COOKIE_KEY = "affiliation_pre_auth_user_id";
+const OAUTH_INTENT_PROVIDER_KEY = "affiliation_oauth_intent_provider";
+const OAUTH_FALLBACK_USED_KEY = "affiliation_oauth_fallback_used";
+
 declare global {
     interface Window {
         UserWay?: {
@@ -22,13 +27,14 @@ declare global {
 }
 
 export default function LoginPage() {
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [isEmailMode, setIsEmailMode] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showMoreOptions, setShowMoreOptions] = useState(false);
+    const [authError, setAuthError] = useState<{ code: string | null; description: string | null } | null>(null);
 
     // Apple Login Mock State
     const [isAppleLoading, setIsAppleLoading] = useState(false);
@@ -56,17 +62,140 @@ export default function LoginPage() {
         };
     }, []);
 
+    const rememberPreAuthUserIdIfAnonymous = async () => {
+        try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) return;
+            const isAnonymous = Boolean((user as any)?.is_anonymous);
+            if (isAnonymous && user?.id) {
+                const existing =
+                    window.localStorage.getItem(SESSION_COOKIE_KEY) ??
+                    window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
+
+                // Migrate legacy key -> new key (best-effort).
+                if (!window.localStorage.getItem(SESSION_COOKIE_KEY)) {
+                    const legacy = window.localStorage.getItem(LEGACY_SESSION_COOKIE_KEY);
+                    if (legacy) {
+                        window.localStorage.setItem(SESSION_COOKIE_KEY, legacy);
+                        window.localStorage.removeItem(LEGACY_SESSION_COOKIE_KEY);
+                    }
+                }
+
+                // If not set, persist the anonymous user id (or tokens if available).
+                if (!existing) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user?.id && Boolean((session.user as any)?.is_anonymous)) {
+                        window.localStorage.setItem(
+                            SESSION_COOKIE_KEY,
+                            JSON.stringify({
+                                user_id: session.user.id,
+                                access_token: session.access_token,
+                                refresh_token: session.refresh_token,
+                            }),
+                        );
+                    } else {
+                        window.localStorage.setItem(SESSION_COOKIE_KEY, user.id);
+                    }
+                }
+            }
+        } catch {
+            // best-effort only
+        }
+    };
+
+    // Parse callback errors and show them on the page.
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const url = new URL(window.location.href);
+        const queryError = url.searchParams.get("error");
+        const queryErrorCode = url.searchParams.get("error_code");
+        const queryErrorDescription = url.searchParams.get("error_description");
+
+        const hash = window.location.hash?.startsWith("#") ? window.location.hash.slice(1) : "";
+        const hashParams = new URLSearchParams(hash);
+        const hashError = hashParams.get("error");
+        const hashErrorCode = hashParams.get("error_code");
+        const hashErrorDescription = hashParams.get("error_description");
+
+        const errorCode = queryErrorCode ?? hashErrorCode ?? (queryError || hashError);
+        const errorDescription = queryErrorDescription ?? hashErrorDescription;
+
+        // If we attempted to link an OAuth identity to an anonymous user but that identity already exists
+        // on another account, fall back to normal OAuth sign-in (common/expected case).
+        const provider = window.sessionStorage.getItem(OAUTH_INTENT_PROVIDER_KEY);
+        const alreadyTried = window.sessionStorage.getItem(OAUTH_FALLBACK_USED_KEY) === "1";
+        const canAutoFallback =
+            errorCode === "identity_already_exists" &&
+            (provider === "google" || provider === "facebook") &&
+            !alreadyTried;
+
+        if (errorCode || errorDescription) {
+            // Clean the URL so a refresh doesn't keep showing the error.
+            window.history.replaceState({}, "", "/login");
+        }
+
+        if (canAutoFallback) {
+            window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+            setAuthError(null);
+
+            const redirectTo = `${BASE_URL}/auth/callback`;
+            void supabase.auth.signInWithOAuth({
+                provider: provider as "google" | "facebook",
+                options: { redirectTo },
+            });
+            return;
+        }
+
+        if (errorCode || errorDescription) {
+            setAuthError({ code: errorCode, description: errorDescription });
+        }
+    }, [BASE_URL, supabase]);
+
     const handleGoogleLogin = async () => {
+        setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // Always use signInWithOAuth - tracking is based on localStorage cookie,
-        // not Supabase user ID. The auth_id in affiliation links the browser to the user.
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: { redirectTo },
-        });
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(OAUTH_INTENT_PROVIDER_KEY, "google");
+            window.sessionStorage.removeItem(OAUTH_FALLBACK_USED_KEY);
+        }
 
-        if (error) console.error("Error logging in:", error.message);
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        if (isAnonymous) {
+            await rememberPreAuthUserIdIfAnonymous();
+        }
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "google",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo },
+            });
+
+        if (error) {
+            console.error("Error logging in:", error.message);
+            const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+
+            // If the Google identity is already linked to another account, sign in normally instead of linking.
+            if (errorCode === "identity_already_exists") {
+                if (typeof window !== "undefined") {
+                    window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+                }
+
+                void supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo },
+                });
+                return;
+            }
+
+            setAuthError({ code: errorCode, description: error.message });
+        }
     };
 
     const handleGoogleLoginClick = async () => {
@@ -75,15 +204,49 @@ export default function LoginPage() {
     };
 
     const handleFacebookLogin = async () => {
+        setAuthError(null);
         const redirectTo = `${BASE_URL}/auth/callback`;
 
-        // Always use signInWithOAuth
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: "facebook",
-            options: { redirectTo },
-        });
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(OAUTH_INTENT_PROVIDER_KEY, "facebook");
+            window.sessionStorage.removeItem(OAUTH_FALLBACK_USED_KEY);
+        }
 
-        if (error) console.error("Error logging in:", error.message);
+        const { data: { user } } = await supabase.auth.getUser();
+        const isAnonymous = Boolean((user as any)?.is_anonymous);
+        if (isAnonymous) {
+            await rememberPreAuthUserIdIfAnonymous();
+        }
+
+        const { error } = isAnonymous
+            ? await supabase.auth.linkIdentity({
+                provider: "facebook",
+                options: { redirectTo },
+            })
+            : await supabase.auth.signInWithOAuth({
+                provider: "facebook",
+                options: { redirectTo },
+            });
+
+        if (error) {
+            console.error("Error logging in:", error.message);
+            const errorCode = (error as unknown as { code?: string }).code ?? "AuthError";
+
+            // If the Facebook identity is already linked to another account, sign in normally instead of linking.
+            if (errorCode === "identity_already_exists") {
+                if (typeof window !== "undefined") {
+                    window.sessionStorage.setItem(OAUTH_FALLBACK_USED_KEY, "1");
+                }
+
+                void supabase.auth.signInWithOAuth({
+                    provider: "facebook",
+                    options: { redirectTo },
+                });
+                return;
+            }
+
+            setAuthError({ code: errorCode, description: error.message });
+        }
     };
 
     const handleFacebookLoginClick = async () => {
@@ -103,6 +266,7 @@ export default function LoginPage() {
 
     const handleSendOtp = async () => {
         if (!email) return;
+        await rememberPreAuthUserIdIfAnonymous();
         setIsLoading(true);
         const { error } = await supabase.auth.signInWithOtp({ email });
         setIsLoading(false);
@@ -161,6 +325,16 @@ export default function LoginPage() {
             <div className="w-full lg:w-1/2 flex flex-col items-center justify-center lg:justify-start lg:pt-22 p-6 md:p-12 relative bg-white">
 
                 <div className="w-full max-w-md space-y-8 mt-10 lg:mt-0">
+                    {(authError?.code || authError?.description) && (
+                        <div className="w-[90%] mx-auto rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                            <div className="font-bold">Login error</div>
+                            <div className="mt-1">
+                                {authError.code === "identity_already_exists"
+                                    ? "This login method is already linked to another account. We’ll sign you in to that existing account instead."
+                                    : (authError.description ?? "Authentication failed. Please try again.")}
+                            </div>
+                        </div>
+                    )}
                     <div className="text-center">
                         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">Continue to Copilot Inside</h1>
                         <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
@@ -197,6 +371,7 @@ export default function LoginPage() {
                             <button
                                 onClick={() => {
                                     void trackLoginWith("email");
+                                    void rememberPreAuthUserIdIfAnonymous();
                                     setIsEmailMode(true);
                                 }}
                                 className="w-[90%] mx-auto flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-900 font-bold py-4 px-6 rounded-full hover:bg-gray-50 transition-colors text-lg shadow-sm cursor-pointer"

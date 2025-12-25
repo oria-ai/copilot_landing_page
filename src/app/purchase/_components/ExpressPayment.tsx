@@ -5,7 +5,7 @@ import { SiVisa, SiMastercard, SiAmericanexpress } from "react-icons/si";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MaintenancePopup from "./MaintenancePopup";
-import { trackPaymentMethodClick } from '@/utils/userActions';
+import { trackPaymentMethodClick, trackUserClick } from "@/utils/userActions";
 
 interface ExpressPaymentProps {
     initialPopupOpen?: boolean;
@@ -22,9 +22,9 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
         }
     }, [initialPopupOpen]);
 
-    const handlePaymentClick = (method: string) => {
-        void trackPaymentMethodClick(method);
-        router.push('/payment');
+    const handlePaymentClick = (method: "card" | "paypal" | "ios") => {
+        void trackPaymentMethodClick(method); // indicates payment intent (no actual charge)
+        void trackUserClick("purchase");
         setIsMaintenanceOpen(true);
     };
 
@@ -64,8 +64,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* PayPal */}
                     <button
-                        id="btn-payment-paypal"
-                        onClick={() => handlePaymentClick('paypal')}
+                        onClick={() => handlePaymentClick("paypal")}
                         className="w-full bg-[#FFC439] hover:bg-[#F4BB30] h-12 rounded-md flex items-center justify-center transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >
                         <span className="sr-only">Pay with PayPal</span>
@@ -75,8 +74,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* Apple/Google Pay */}
                     <button
-                        id="btn-payment-apple-google"
-                        onClick={() => handlePaymentClick('apple_google_pay')}
+                        onClick={() => handlePaymentClick("ios")}
                         className="w-full bg-black hover:bg-gray-900 h-12 rounded-md flex items-center justify-center gap-2 text-white transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >
                         <FaApple size={20} />
@@ -89,8 +87,7 @@ export default function ExpressPayment({ initialPopupOpen = false }: ExpressPaym
 
                     {/* Credit Card */}
                     <button
-                        id="btn-payment-card"
-                        onClick={() => handlePaymentClick('card')}
+                        onClick={() => handlePaymentClick("card")}
                         className="w-full bg-white border border-gray-300 hover:border-gray-400 h-12 rounded-md flex items-center justify-center gap-3 text-gray-700 transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-sm cursor-pointer"
                     >
                         <div className="flex gap-2 text-xl">

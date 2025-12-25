@@ -3,13 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AnimationProvider } from "@/lib/AnimationContext";
 import { CookieConsentProvider } from "@/lib/CookieConsentContext";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/next"
 
-import CookieBanner from "@/components/CookieBanner";
+// import CookieBanner from "@/components/CookieBanner";
 import AffiliationBootstrap from "@/components/AffiliationBootstrap";
-
-import GoogleTagManager from "@/components/GoogleTagManager";
-import ConsentInitialization from "@/components/ConsentInitialization";
+// import GoogleAnalytics from "@/components/GoogleAnalytics";
+// import GoogleTagManager from "@/components/GoogleTagManager";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,9 +38,8 @@ export default function RootLayout({
       >
         <CookieConsentProvider>
           <AffiliationBootstrap />
-          <ConsentInitialization />
-          <GoogleTagManager gtmId="GTM-WX66MW72" />
-
+          {/* <GoogleTagManager gtmId="GTM-WX66MW72" /> */}
+          {/* <GoogleAnalytics gaId="G-KJW3H27633" /> */}
           <Script
             src="https://cdn.userway.org/widget.js"
             data-account="u9qKBcpIlF"
@@ -51,7 +49,7 @@ export default function RootLayout({
             {children}
             <Analytics />
           </AnimationProvider>
-          <CookieBanner cookiePolicyLink="/cookie-policy.pdf" />
+          {/* <CookieBanner cookiePolicyLink="/cookie-policy.pdf" /> */}
         </CookieConsentProvider>
       </body>
     </html>
