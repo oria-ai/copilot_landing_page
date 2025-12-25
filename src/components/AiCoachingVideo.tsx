@@ -14,17 +14,28 @@ export default function AiCoachingVideo({ src, className }: AiCoachingVideoProps
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        videoRef.current?.play().catch((error) => {
+                    const video = videoRef.current;
+                    if (!video) return;
+
+                    // If completely out of view
+                    if (!entry.isIntersecting) {
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                    // If visible but less than 50%
+                    else if (entry.intersectionRatio < 0.5) {
+                        video.pause();
+                    }
+                    // If visible >= 50%
+                    else {
+                        video.play().catch((error) => {
                             console.error("Autoplay prevented:", error);
                         });
-                    } else {
-                        videoRef.current?.pause();
                     }
                 });
             },
             {
-                threshold: 0.5, // Trigger when 50% of the video is visible
+                threshold: [0, 0.5], // Trigger at 0% and 50% visibility
             }
         );
 
