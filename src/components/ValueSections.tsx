@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { useAnimations } from '@/lib/AnimationContext';
 import AiCoachingVideo from './AiCoachingVideo';
 import { trackStartFreeTrialClick } from '@/utils/userActions';
+import { Check } from 'lucide-react';
 
 type ValueItem = {
     id: string;
@@ -39,7 +40,7 @@ const values: ValueItem[] = [
     {
         id: 'walkthrough',
         title: 'Interactive Walkthrough Guidance',
-        description: 'Go beyond passive watching. After every video lesson, reinforce your skills with our overlay technology that guides your clicks in real-time.',
+        description: 'Go beyond passive watching. After every video lesson, reinforce your skills with our interactive browser-based Walkthrough.',
         src: '/orientation.mp4',
         align: 'left'
     },
@@ -75,13 +76,19 @@ export default function ValueSections() {
                             <p className="text-xl text-gray-400 leading-relaxed">
                                 {value.description}
                             </p>
-                            <Link
-                                href="/login"
-                                onClick={() => void trackStartFreeTrialClick(4 + index)}
-                                className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200"
-                            >
-                                Start Free Trial
-                            </Link>
+                            <div className="flex flex-col gap-3">
+                                <Link
+                                    href="/login"
+                                    onClick={() => void trackStartFreeTrialClick(4 + index)}
+                                    className="inline-block bg-white text-black font-bold py-4 px-8 rounded-full text-lg hover:scale-105 transition-transform duration-200 text-center w-fit"
+                                >
+                                    {index % 2 === 1 ? 'Get Started' : 'Start Free Trial'}
+                                </Link>
+                                <div className="flex items-center gap-2 text-sm text-gray-400 font-medium opacity-80 pl-2">
+                                    <Check className="w-4 h-4 text-green-500" />
+                                    <span>No installation required</span>
+                                </div>
+                            </div>
                         </motion.div>
 
                         {/* Video Side */}

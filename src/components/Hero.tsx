@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Table, Presentation, Users, Mail, Cloud, MessageSquare } from 'lucide-react';
+import { FileText, Table, Presentation, Users, Mail, Cloud, MessageSquare, Check } from 'lucide-react';
 import Link from 'next/link';
 
 export const tabs = [
@@ -163,7 +163,7 @@ export default function Hero({ initialTool }: HeroProps) {
                             </span>
                         </>
                     ) : (
-                        'Master Copilot with expert video lessons and step-by-step, "WalkMe-style" guidance inside Word, Excel, and PowerPoint.'
+                        'Master Copilot with expert video lessons and step-by-step, "WalkMe-style" guidance for Word, Excel, and PowerPoint.'
                     )}
                 </motion.p>
 
@@ -171,7 +171,7 @@ export default function Hero({ initialTool }: HeroProps) {
                     initial={animationsEnabled ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mt-8"
+                    className="mt-8 flex flex-col items-center gap-3"
                 >
                     <Link
                         href="/login"
@@ -180,6 +180,10 @@ export default function Hero({ initialTool }: HeroProps) {
                     >
                         Start Free Trial
                     </Link>
+                    <div className="flex items-center gap-2 text-sm text-gray-400 font-medium opacity-80">
+                        <Check className="w-4 h-4 text-green-500" />
+                        <span>No installation required</span>
+                    </div>
                 </motion.div>
             </div>
 
