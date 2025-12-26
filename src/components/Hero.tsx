@@ -144,8 +144,8 @@ export default function Hero({ initialTool }: HeroProps) {
                         </>
                     ) : (
                         <>
-                            Your Personalized <br />
-                            <span className="text-gradient">M365 Training Program</span>
+                            Copilot In M365 Course <br />
+                            <span className="text-gradient">Personalized For You</span>
                         </>
                     )}
                 </motion.h1>
